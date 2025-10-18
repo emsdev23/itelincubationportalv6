@@ -5,6 +5,7 @@ import styles from "../Navbar.module.css"; // CSS module for scoped styles
 import ITELLogo from "../../assets/ITEL_Logo.png"; // Logo image
 import { NavLink } from "react-router-dom";
 import { FolderDown, MoveLeft } from "lucide-react"; // Icon for the button
+import DDIAssociationTable from "./DDIAssociationTable";
 
 export default function UserAssociation() {
   return (
@@ -38,6 +39,9 @@ export default function UserAssociation() {
         <h1>🔗 User Associations Management</h1>
         <section className="doccat-section">
             <UserAssociationTable />
+        </section>
+        <section className="doccat-section">
+            <DDIAssociationTable />
         </section>
       </main>
     </div>

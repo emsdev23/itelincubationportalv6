@@ -66,7 +66,7 @@ const DocumentUploadModal = ({
       try {
         const token = sessionStorage.getItem("token");
         const response = await fetch(
-          "http://121.242.232.212:8089/itelinc/resources/generic/getdoccat",
+          "http://121.242.232.212:8086/itelinc/resources/generic/getdoccat",
           {
             method: "POST",
             headers: {
@@ -116,7 +116,7 @@ const DocumentUploadModal = ({
       try {
         const token = sessionStorage.getItem("token");
         const response = await fetch(
-          "http://121.242.232.212:8089/itelinc/resources/generic/getdocsubcat",
+          "http://121.242.232.212:8086/itelinc/resources/generic/getdocsubcat",
           {
             method: "POST",
             headers: {
@@ -168,7 +168,7 @@ const DocumentUploadModal = ({
       try {
         const token = sessionStorage.getItem("token");
         const response = await fetch(
-          "http://121.242.232.212:8089/itelinc/resources/generic/getdocinfo",
+          "http://121.242.232.212:8086/itelinc/resources/generic/getdocinfo",
           {
             method: "POST",
             headers: {
@@ -364,7 +364,7 @@ const DocumentUploadModal = ({
 
       const token = sessionStorage.getItem("token");
       const response = await fetch(
-        "http://121.242.232.212:8089/itelinc/resources/generic/adddocument",
+        "http://121.242.232.212:8086/itelinc/resources/generic/adddocument",
         {
           method: "POST",
           headers: {

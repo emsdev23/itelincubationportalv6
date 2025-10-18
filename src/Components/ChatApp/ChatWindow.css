@@ -1,0 +1,69 @@
+/* src/components/ChatWindow.css */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+}
+
+.chat-header {
+  padding: 15px 20px;
+  background-color: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+}
+
+.chat-header h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.chat-type-info {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.messages-container {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background-color: #fff;
+}
+
+.no-messages {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #999;
+  font-style: italic;
+}
+
+.reply-preview {
+  padding: 10px 20px;
+  background-color: #f0f7ff;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reply-content span {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: bold;
+}
+
+.reply-content p {
+  margin: 5px 0 0 0;
+  font-style: italic;
+  color: #444;
+}
+
+.cancel-reply-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #666;
+}

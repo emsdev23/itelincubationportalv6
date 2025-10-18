@@ -12,8 +12,9 @@ export default function DocCatTable() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editCat, setEditCat] = useState(null);
   const [formData, setFormData] = useState({
-    doccatname: "",
-    doccatdescription: "",
+    ddidoccatname: "",
+    ddidoccatdescription: "",
+    ddidoccatadminstate: 1,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -28,15 +29,20 @@ export default function DocCatTable() {
     direction: "ascending",
   });
 
-  // ✅ Fetch all categories
+  // ✅ Fetch all categories with new API
   const IP = "http://121.242.232.212:8086";
   const fetchCategories = () => {
     setLoading(true);
     setError(null);
 
-    fetch(`${IP}/itelinc/getDoccatAll`, {
-      method: "GET",
+    fetch(`${IP}/itelinc/resources/generic/getddidoccatlist`, {
+      method: "POST",
       mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ userId: parseInt(userId) || 1 }),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -74,55 +80,35 @@ export default function DocCatTable() {
     );
   };
 
-  // Enhanced sorting function to handle different data types
-  const sortValue = (value, key, originalIndex) => {
-    // Handle null/undefined values
-    if (value === null || value === undefined) {
-      return "";
-    }
-
-    // For S.No column, use the original index
-    if (key === "sno") {
-      return originalIndex;
-    }
-
-    // Handle date/time strings
-    if (key === "doccatcreatedtime" || key === "doccatmodifiedtime") {
-      return value ? new Date(value.replace("?", "")) : new Date(0);
-    }
-
-    // Handle numeric values
-    if (
-      key === "doccatcreatedby" ||
-      key === "doccatmodifiedby" ||
-      key === "doccatrecid"
-    ) {
-      // Check if it's a numeric ID or a name
-      if (!isNaN(value)) {
-        return parseInt(value, 10);
-      }
-      return value.toString().toLowerCase();
-    }
-
-    // Default to string comparison
-    return value.toString().toLowerCase();
-  };
-
   // Apply sorting to the data
   const sortedCats = React.useMemo(() => {
     let sortableCats = [...cats];
     if (sortConfig.key !== null) {
       sortableCats.sort((a, b) => {
-        const aValue = sortValue(
-          a[sortConfig.key],
-          sortConfig.key,
-          cats.indexOf(a)
-        );
-        const bValue = sortValue(
-          b[sortConfig.key],
-          sortConfig.key,
-          cats.indexOf(b)
-        );
+        // Handle different data types
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // For S.No column, use the index
+        if (sortConfig.key === "sno") {
+          aValue = cats.indexOf(a);
+          bValue = cats.indexOf(b);
+        }
+
+        // Handle string comparison
+        if (typeof aValue === "string") {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
+
+        // Handle date/time strings
+        if (
+          sortConfig.key === "ddidoccatcreatedtime" ||
+          sortConfig.key === "ddidoccatmodifiedtime"
+        ) {
+          aValue = aValue ? new Date(aValue.replace("?", "")) : new Date(0);
+          bValue = bValue ? new Date(bValue.replace("?", "")) : new Date(0);
+        }
 
         if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
@@ -138,7 +124,11 @@ export default function DocCatTable() {
 
   const openAddModal = () => {
     setEditCat(null);
-    setFormData({ doccatname: "", doccatdescription: "" });
+    setFormData({
+      ddidoccatname: "",
+      ddidoccatdescription: "",
+      ddidoccatadminstate: 1,
+    });
     setIsModalOpen(true);
     setError(null);
   };
@@ -146,8 +136,9 @@ export default function DocCatTable() {
   const openEditModal = (cat) => {
     setEditCat(cat);
     setFormData({
-      doccatname: cat.doccatname || "",
-      doccatdescription: cat.doccatdescription || "",
+      ddidoccatname: cat.ddidoccatname || "",
+      ddidoccatdescription: cat.ddidoccatdescription || "",
+      ddidoccatadminstate: cat.ddidoccatadminstate || 1,
     });
     setIsModalOpen(true);
     setError(null);
@@ -157,7 +148,7 @@ export default function DocCatTable() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Delete with SweetAlert and loading popup
+  // ✅ Delete with SweetAlert and loading popup using new API
   const handleDelete = (catId) => {
     Swal.fire({
       title: "Are you sure?",
@@ -183,14 +174,16 @@ export default function DocCatTable() {
           },
         });
 
-        const deleteUrl = `${IP}/itelinc/deletedoccat?doccatrecid=${catId}&doccatmodifiedby=${userId}`;
+        const deleteUrl = `${IP}/itelinc/ddidoccatdelete?ddidoccatrecid=${catId}&ddidoccatmodifiedby=${
+          userId || 1
+        }`;
 
         fetch(deleteUrl, {
           method: "POST",
           mode: "cors",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Bearer ${token}`,
           },
         })
           .then((res) => res.json())
@@ -218,14 +211,17 @@ export default function DocCatTable() {
     });
   };
 
-  // ✅ FIXED: Add/Update with proper URL encoding and loading popup
+  // ✅ FIXED: Add/Update with new API endpoints
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSaving(true);
     setError(null);
 
     // Validate form data
-    if (!formData.doccatname.trim() || !formData.doccatdescription.trim()) {
+    if (
+      !formData.ddidoccatname.trim() ||
+      !formData.ddidoccatdescription.trim()
+    ) {
       setError("Category name and description are required");
       setIsSaving(false);
       return;
@@ -251,28 +247,27 @@ export default function DocCatTable() {
       },
     });
 
-    // Build URL parameters safely
-    const params = new URLSearchParams();
-
+    // Build URL parameters for the new API
+    let url;
     if (editCat) {
-      params.append("doccatrecid", editCat.doccatrecid);
-    }
-    params.append("doccatname", formData.doccatname.trim());
-    params.append("doccatdescription", formData.doccatdescription.trim());
-
-    // ✅ FIX: User ID is REQUIRED for both add and update operations
-    if (editCat) {
-      params.append("doccatmodifiedby", userId || "1"); // Fallback to "1" if null
+      url = `${IP}/itelinc/ddidoccatedit?ddidoccatrecid=${
+        editCat.ddidoccatrecid
+      }&ddidoccatname=${encodeURIComponent(
+        formData.ddidoccatname.trim()
+      )}&ddidoccatdescription=${encodeURIComponent(
+        formData.ddidoccatdescription.trim()
+      )}&ddidoccatmodifiedby=${userId || 1}&ddidoccatadminstate=${
+        formData.ddidoccatadminstate
+      }`;
     } else {
-      params.append("doccatcreatedby", userId || "1");
-      params.append("doccatmodifiedby", userId || "1");
+      url = `${IP}/itelinc/ddidoccatadd?ddidoccatname=${encodeURIComponent(
+        formData.ddidoccatname.trim()
+      )}&ddidoccatdescription=${encodeURIComponent(
+        formData.ddidoccatdescription.trim()
+      )}&ddidoccatcreatedby=${userId || 1}&ddidoccatmodifiedby=${
+        userId || 1
+      }&ddidoccatadminstate=${formData.ddidoccatadminstate}`;
     }
-
-    const baseUrl = editCat
-      ? `${IP}/itelinc/updateDoccat`
-      : `${IP}/itelinc/addDoccat`;
-
-    const url = `${baseUrl}?${params.toString()}`;
 
     console.log("API URL:", url); // Debug URL
 
@@ -280,8 +275,8 @@ export default function DocCatTable() {
       method: "POST",
       mode: "cors",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Bearer ${token}`,
       },
     })
       .then(async (res) => {
@@ -310,7 +305,11 @@ export default function DocCatTable() {
             });
           } else {
             setEditCat(null);
-            setFormData({ doccatname: "", doccatdescription: "" });
+            setFormData({
+              ddidoccatname: "",
+              ddidoccatdescription: "",
+              ddidoccatadminstate: 1,
+            });
             fetchCategories();
             Swal.fire(
               "Success",
@@ -342,7 +341,7 @@ export default function DocCatTable() {
   return (
     <div className="doccat-container">
       <div className="doccat-header">
-        <h2 className="doccat-title">📂 Document Categories</h2>
+        <h2 className="doccat-title">📂 Due Deligence Document Categories</h2>
         <button className="btn-add-category" onClick={openAddModal}>
           + Add Category
         </button>
@@ -357,53 +356,47 @@ export default function DocCatTable() {
           <table className="doccat-table">
             <thead>
               <tr>
-                {/* <th
+                <th
                   className="sortable-header"
                   onClick={() => requestSort("sno")}
                 >
                   S.No {getSortIcon("sno")}
-                </th> */}
-                <th
-                  className="sortable-header"
-                  onClick={() => requestSort("doccatrecid")}
-                >
-                  ID {getSortIcon("doccatrecid")}
                 </th>
                 <th
                   className="sortable-header"
-                  onClick={() => requestSort("doccatname")}
+                  onClick={() => requestSort("ddidoccatname")}
                 >
-                  Category Name {getSortIcon("doccatname")}
+                  Category Name {getSortIcon("ddidoccatname")}
                 </th>
                 <th
                   className="sortable-header"
-                  onClick={() => requestSort("doccatdescription")}
+                  onClick={() => requestSort("ddidoccatdescription")}
                 >
-                  Description {getSortIcon("doccatdescription")}
+                  Description {getSortIcon("ddidoccatdescription")}
                 </th>
                 <th
                   className="sortable-header"
-                  onClick={() => requestSort("doccatcreatedby")}
+                  onClick={() => requestSort("ddidoccatcreatedby")}
                 >
-                  Created By {getSortIcon("doccatcreatedby")}
+                  Created By {getSortIcon("ddidoccatcreatedby")}
                 </th>
                 <th
                   className="sortable-header"
-                  onClick={() => requestSort("doccatcreatedtime")}
+                  onClick={() => requestSort("ddidoccatcreatedtime")}
                 >
-                  Created Time {getSortIcon("doccatcreatedtime")}
+                  Created Time {getSortIcon("ddidoccatcreatedtime")}
                 </th>
                 <th
                   className="sortable-header"
-                  onClick={() => requestSort("doccatmodifiedby")}
+                  onClick={() => requestSort("ddidoccatmodifiedby")}
                 >
-                  Modified By {getSortIcon("doccatmodifiedby")}
+                  Modified By {getSortIcon("ddidoccatmodifiedby")}
                 </th>
                 <th
                   className="sortable-header"
-                  onClick={() => requestSort("doccatmodifiedtime")}
+                  onClick={() => requestSort("ddidoccatmodifiedtime")}
                 >
-                  Modified Time {getSortIcon("doccatmodifiedtime")}
+                  Modified Time {getSortIcon("ddidoccatmodifiedtime")}
                 </th>
                 <th>Actions</th>
               </tr>
@@ -411,23 +404,30 @@ export default function DocCatTable() {
             <tbody>
               {sortedCats.length > 0 ? (
                 sortedCats.map((cat, idx) => (
-                  <tr key={cat.doccatrecid || idx}>
-                    {/* <td>{idx + 1}</td> */}
-                    <td>{cat.doccatrecid}</td>
-                    <td>{cat.doccatname}</td>
-                    <td>{cat.doccatdescription}</td>
+                  <tr key={cat.ddidoccatrecid || idx}>
+                    <td>{idx + 1}</td>
+                    <td>{cat.ddidoccatname}</td>
+                    <td>{cat.ddidoccatdescription}</td>
                     <td>
-                      {isNaN(cat.doccatcreatedby)
-                        ? cat.doccatcreatedby
+                      {isNaN(cat.ddidoccatcreatedby)
+                        ? cat.ddidoccatcreatedby
                         : "Admin"}
                     </td>
-                    <td>{cat.doccatcreatedtime.replace("?", "")}</td>
                     <td>
-                      {isNaN(cat.doccatmodifiedby)
-                        ? cat.doccatmodifiedby
+                      {cat.ddidoccatcreatedtime
+                        ? cat.ddidoccatcreatedtime.replace("?", "")
+                        : ""}
+                    </td>
+                    <td>
+                      {isNaN(cat.ddidoccatmodifiedby)
+                        ? cat.ddidoccatmodifiedby
                         : "Admin"}
                     </td>
-                    <td>{cat.doccatmodifiedtime.replace("?", "")}</td>
+                    <td>
+                      {cat.ddidoccatmodifiedtime
+                        ? cat.ddidoccatmodifiedtime.replace("?", "")
+                        : ""}
+                    </td>
                     <td>
                       <button
                         className="btn-edit"
@@ -438,8 +438,8 @@ export default function DocCatTable() {
                       </button>
                       <button
                         className="btn-delete"
-                        onClick={() => handleDelete(cat.doccatrecid)}
-                        disabled={isDeleting[cat.doccatrecid] || isSaving} // Disable when deleting or saving
+                        onClick={() => handleDelete(cat.ddidoccatrecid)}
+                        disabled={isDeleting[cat.ddidoccatrecid] || isSaving} // Disable when deleting or saving
                       >
                         <FaTrash size={18} />
                       </button>
@@ -448,7 +448,7 @@ export default function DocCatTable() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="doccat-empty">
+                  <td colSpan="8" className="doccat-empty">
                     No categories found
                   </td>
                 </tr>
@@ -476,8 +476,8 @@ export default function DocCatTable() {
                 Category Name *
                 <input
                   type="text"
-                  name="doccatname"
-                  value={formData.doccatname}
+                  name="ddidoccatname"
+                  value={formData.ddidoccatname}
                   onChange={handleChange}
                   required
                   placeholder="Enter category name"
@@ -487,8 +487,8 @@ export default function DocCatTable() {
               <label>
                 Description *
                 <textarea
-                  name="doccatdescription"
-                  value={formData.doccatdescription}
+                  name="ddidoccatdescription"
+                  value={formData.ddidoccatdescription}
                   onChange={handleChange}
                   required
                   placeholder="Enter category description"

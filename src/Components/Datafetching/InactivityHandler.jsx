@@ -16,24 +16,31 @@ export function InactivityHandler({ children }) {
       timeout = setTimeout(showSessionExpiredAlert, 900000); // 15 min
     };
 
-    const logoutUser = async (reason = "Auto logout due to inactivity") => {
+    const currentTime = new Date().toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    });
+    const logoutUser = async (
+      reason = `Auto logout due to inactivity at ${currentTime}`
+    ) => {
       if (isLoggedOut.current) return; // prevent multiple logouts
       isLoggedOut.current = true;
 
       try {
-        const userid = sessionStorage.getItem("userid");
+        const userid = String(JSON.parse(sessionStorage.getItem("userid")));
         const token = sessionStorage.getItem("token");
+
+        // 🕒 Get current date & time
 
         if (userid && token) {
           await fetch(
-            "http://121.242.232.212:8089/itelinc/resources/auth/logout",
+            "http://121.242.232.212:8086/itelinc/resources/auth/logout",
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ userid, logoutreason: reason }),
+              body: JSON.stringify({ userid, reason: reason }),
             }
           );
         }

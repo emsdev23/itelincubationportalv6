@@ -5,7 +5,7 @@
   padding: 2rem;
   background: #f3f4f6; /* gray-100 */
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 /* ===============================
@@ -40,6 +40,7 @@
 .btn-add-category:hover {
   background-color: #059669; /* green-600 */
 }
+
 .doc-management-page {
   background-color: #f3f4f6; /* gray-100 page background */
   min-height: 100vh;
@@ -48,4 +49,42 @@
 
 .doc-management-main {
   padding: 2rem;
+}
+
+/* ===============================
+   Tab Navigation
+=============================== */
+.tab-navigation {
+  display: flex;
+  border-bottom: 2px solid #e5e7eb; /* gray-200 */
+  margin-bottom: 1.5rem;
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #6b7280; /* gray-500 */
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 1rem;
+}
+
+.tab-button:hover {
+  color: #374151; /* gray-700 */
+}
+
+.tab-button.active {
+  color: #3b82f6; /* blue-500 */
+  border-bottom-color: #3b82f6; /* blue-500 */
+}
+
+/* ===============================
+   Tab Content
+=============================== */
+.tab-content {
+  padding-top: 1rem;
 }

@@ -1,107 +1,322 @@
-// CompanyTable.jsx
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useMemo } from "react";
 import styles from "./CompanyTable.module.css";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { DataContext } from "../Components/Datafetching/DataProvider";
+import api from "../Components/Datafetching/api";
+
+// Direct import at the top level
+import * as XLSX from "xlsx";
 
 export default function CompanyTable({ companyList = [] }) {
   const navigate = useNavigate();
+  const { roleid, setadminviewData } = useContext(DataContext);
 
-  const { roleid } = useContext(DataContext);
-
+  // Filters & Pagination States
   const [searchTerm, setSearchTerm] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
+  const [fieldFilter, setFieldFilter] = useState("all");
+  const [fieldOfWorkList, setFieldOfWorkList] = useState([]);
+
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState("");
+  const [sortDirection, setSortDirection] = useState("asc");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // ✅ Deduplicate list by recid
+  // Check if XLSX is available
+  const isXLSXAvailable = !!XLSX;
+
+  // ✅ Fetch Field of Work List from API
+  useEffect(() => {
+    const fetchFields = async () => {
+      try {
+        const response = await api.post(
+          "/generic/getcombyfield",
+          { userId: "39" },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (response.data?.statusCode === 200) {
+          setFieldOfWorkList(response.data.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching field of work list:", error);
+      }
+    };
+
+    fetchFields();
+  }, []);
+
+  // ✅ Deduplicate companies by recid
   const uniqueCompanies = Array.from(
     new Map(
       (companyList || []).map((item) => [item.incubateesrecid, item])
     ).values()
   );
 
-  // ✅ Filtered data safely
-  const filteredData = uniqueCompanies.filter((item) => {
-    const matchesSearch =
-      (item.incubateesname || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (item.incubateesfieldofworkname || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+  // Handle sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // If clicking the same column, toggle direction
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // If clicking a different column, set it as the sort column and default to asc
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
 
-    const matchesStage =
-      stageFilter === "all" ||
-      (item.incubateesstagelevel &&
-        item.incubateesstagelevel === Number(stageFilter));
+  // Sort and filter data using useMemo for performance
+  const processedData = useMemo(() => {
+    // First sort the data
+    let sortedData = [...uniqueCompanies];
 
-    return matchesSearch && matchesStage;
-  });
+    if (sortColumn) {
+      sortedData.sort((a, b) => {
+        let aVal = a[sortColumn];
+        let bVal = b[sortColumn];
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+        // Handle null/undefined values
+        if (aVal === null || aVal === undefined) aVal = "";
+        if (bVal === null || bVal === undefined) bVal = "";
+
+        // Handle date sorting
+        if (sortColumn.includes("date")) {
+          aVal = new Date(aVal);
+          bVal = new Date(bVal);
+          if (isNaN(aVal)) aVal = new Date(0);
+          if (isNaN(bVal)) bVal = new Date(0);
+        }
+
+        // Compare values
+        let comparison = 0;
+        if (typeof aVal === "string" && typeof bVal === "string") {
+          comparison = aVal.localeCompare(bVal);
+        } else {
+          comparison = aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        }
+
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+
+    // Then filter the data
+    return sortedData.filter((item) => {
+      const matchesSearch =
+        (item.incubateesname || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (item.incubateesfieldofworkname || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+
+      const matchesStage =
+        stageFilter === "all" ||
+        (item.incubateesstagelevel &&
+          item.incubateesstagelevel === Number(stageFilter));
+
+      const matchesField =
+        fieldFilter === "all" ||
+        (item.incubateesfieldofworkname &&
+          item.incubateesfieldofworkname.toLowerCase() ===
+            fieldFilter.toLowerCase());
+
+      return matchesSearch && matchesStage && matchesField;
+    });
+  }, [
+    uniqueCompanies,
+    sortColumn,
+    sortDirection,
+    searchTerm,
+    stageFilter,
+    fieldFilter,
+  ]);
+
+  // ✅ Pagination logic
+  const totalPages = Math.ceil(processedData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentData = filteredData.slice(startIndex, endIndex);
+  const currentData = processedData.slice(startIndex, endIndex);
 
-  // Reset to page 1 when filters change
-  React.useEffect(() => {
+  // Reset to page 1 when filters or sorting change
+  useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, stageFilter]);
+  }, [searchTerm, stageFilter, fieldFilter, sortColumn, sortDirection]);
 
-  // Generate page numbers for pagination
+  // Pagination helper
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
 
     if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          pages.push(i);
-        }
+        for (let i = 1; i <= 4; i++) pages.push(i);
         pages.push("...");
         pages.push(totalPages);
       } else if (currentPage >= totalPages - 2) {
         pages.push(1);
         pages.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) {
-          pages.push(i);
-        }
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
       } else {
         pages.push(1);
         pages.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-          pages.push(i);
-        }
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
         pages.push("...");
         pages.push(totalPages);
       }
     }
+
     return pages;
   };
 
   const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
   const handleItemsPerPageChange = (newItemsPerPage) => {
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
+  };
+
+  // Helper function to render sort indicator
+  const renderSortIndicator = (column) => {
+    const isActive = sortColumn === column;
+    const isAsc = sortDirection === "asc";
+
+    return (
+      <span
+        className={`${styles.sortIndicator} ${
+          isActive ? styles.activeSort : styles.inactiveSort
+        }`}
+      >
+        {isActive ? (isAsc ? " ▲" : " ▼") : " ↕"}
+      </span>
+    );
+  };
+
+  // Export to CSV function
+  const exportToCSV = () => {
+    // Create a copy of the data for export
+    const exportData = processedData.map((item) => ({
+      "Company Name": item.incubateesname || "",
+      "Field of Work": item.incubateesfieldofworkname || "",
+      Stage: item.incubateesstagelevelname || "",
+      "Date of Incorporation": item.incubateesdateofincorporation
+        ? new Date(item.incubateesdateofincorporation).toLocaleDateString()
+        : "",
+      "Date of Incubation": item.incubateesdateofincubation
+        ? new Date(item.incubateesdateofincubation).toLocaleDateString()
+        : "",
+    }));
+
+    // Convert to CSV
+    const headers = Object.keys(exportData[0] || {});
+    const csvContent = [
+      headers.join(","),
+      ...exportData.map((row) =>
+        headers
+          .map((header) => {
+            // Handle values that might contain commas
+            const value = row[header];
+            return typeof value === "string" && value.includes(",")
+              ? `"${value}"`
+              : value;
+          })
+          .join(",")
+      ),
+    ].join("\n");
+
+    // Create a blob and download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `incubatees_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export to Excel function
+  const exportToExcel = () => {
+    if (!isXLSXAvailable) {
+      console.error("XLSX library not available");
+      alert("Excel export is not available. Please install the xlsx package.");
+      return;
+    }
+
+    try {
+      // Create a copy of the data for export
+      const exportData = processedData.map((item) => ({
+        "Company Name": item.incubateesname || "",
+        "Field of Work": item.incubateesfieldofworkname || "",
+        Stage: item.incubateesstagelevelname || "",
+        "Date of Incorporation": item.incubateesdateofincorporation
+          ? new Date(item.incubateesdateofincorporation).toLocaleDateString()
+          : "",
+        "Date of Incubation": item.incubateesdateofincubation
+          ? new Date(item.incubateesdateofincubation).toLocaleDateString()
+          : "",
+      }));
+
+      // Create a workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Incubatees");
+
+      // Generate the Excel file and download
+      XLSX.writeFile(
+        wb,
+        `incubatees_${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      alert("Error exporting to Excel. Falling back to CSV export.");
+      exportToCSV();
+    }
   };
 
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
         <h2>Incubatees</h2>
+        <div className={styles.exportButtons}>
+          <button
+            className={styles.exportButton}
+            onClick={exportToCSV}
+            title="Export as CSV"
+          >
+            Export CSV
+          </button>
+          <button
+            className={`${styles.exportButton} ${
+              !isXLSXAvailable ? styles.disabledButton : ""
+            }`}
+            onClick={exportToExcel}
+            title={
+              isXLSXAvailable ? "Export as Excel" : "Excel export not available"
+            }
+            disabled={!isXLSXAvailable}
+          >
+            Export Excel
+          </button>
+        </div>
       </div>
 
+      {/* Filters Section */}
       <div className={styles.filters}>
         <input
           type="text"
@@ -124,6 +339,20 @@ export default function CompanyTable({ companyList = [] }) {
           <option value="5">Expansion Stage</option>
         </select>
 
+        {/* ✅ New Field of Work Filter */}
+        <select
+          value={fieldFilter}
+          onChange={(e) => setFieldFilter(e.target.value)}
+          className={styles.select}
+        >
+          <option value="all">All Fields</option>
+          {fieldOfWorkList.map((field, index) => (
+            <option key={index} value={field.fieldofworkname}>
+              {field.fieldofworkname} ({field.incubatees_count})
+            </option>
+          ))}
+        </select>
+
         <select
           value={itemsPerPage}
           onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
@@ -136,22 +365,52 @@ export default function CompanyTable({ companyList = [] }) {
         </select>
       </div>
 
-      {/* Results info */}
+      {/* Results Info */}
       <div className={styles.resultsInfo}>
-        Showing {startIndex + 1} to {Math.min(endIndex, filteredData.length)} of{" "}
-        {filteredData.length} entries
+        Showing {startIndex + 1} to {Math.min(endIndex, processedData.length)}{" "}
+        of {processedData.length} entries
       </div>
 
+      {/* Table */}
       <div className={styles.tableWrapper}>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Company</th>
-              <th>Field of Work</th>
-              <th>Stage</th>
-              <th>Date of Incorporation</th>
-              <th>Date of Incubation</th>
-              {/* <th className={styles.textRight}>Actions</th> */}
+              <th
+                className={styles.sortableHeader}
+                onClick={() => handleSort("incubateesname")}
+              >
+                Company {renderSortIndicator("incubateesname")}
+              </th>
+              <th
+                className={styles.sortableHeader}
+                onClick={() => handleSort("incubateesfieldofworkname")}
+              >
+                Field of Work {renderSortIndicator("incubateesfieldofworkname")}
+              </th>
+              <th
+                className={styles.sortableHeader}
+                onClick={() => handleSort("incubateesstagelevel")}
+              >
+                Stage {renderSortIndicator("incubateesstagelevel")}
+              </th>
+              <th
+                className={styles.sortableHeader}
+                onClick={() => handleSort("incubateesdateofincorporation")}
+              >
+                Date of Incorporation{" "}
+                {renderSortIndicator("incubateesdateofincorporation")}
+              </th>
+              <th
+                className={styles.sortableHeader}
+                onClick={() => handleSort("incubateesdateofincubation")}
+              >
+                Date of Incubation{" "}
+                {renderSortIndicator("incubateesdateofincubation")}
+              </th>
+              {(Number(roleid) === 1 || Number(roleid) === 3) && (
+                <th>Actions</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -182,7 +441,10 @@ export default function CompanyTable({ companyList = [] }) {
                       ).toLocaleDateString()
                     : "-"}
                 </td>
-                {Number(roleid) === 1 || Number(roleid) === 3 &&(
+
+                {(Number(roleid) === 1 ||
+                  Number(roleid) === 3 ||
+                  Number(roleid) === 7) && (
                   <td>
                     <button
                       className={styles.buttonPrimary}
@@ -190,17 +452,19 @@ export default function CompanyTable({ companyList = [] }) {
                         background: "#4f46e5",
                         color: "#fff",
                         borderRadius: "0.3rem",
-                        padding: "0.4rem",
+                        padding: "0.4rem 0.8rem",
                         borderColor: "#4f46e5",
                         cursor: "pointer",
                       }}
-                      onClick={() =>
-                        navigate(
-                          `/startup/Dashboard/${
-                            item.usersrecid
-                          }?founder=${encodeURIComponent(item.incubateesname)}`
-                        )
-                      }
+                      onClick={() => {
+                        setadminviewData(item.usersrecid);
+                        navigate("/startup/Dashboard", {
+                          state: {
+                            usersrecid: item.usersrecid,
+                            companyName: item.incubateesname,
+                          },
+                        });
+                      }}
                     >
                       View Details
                     </button>
@@ -211,7 +475,7 @@ export default function CompanyTable({ companyList = [] }) {
           </tbody>
         </table>
 
-        {filteredData.length === 0 && (
+        {processedData.length === 0 && (
           <div className={styles.noData}>
             No companies found matching your criteria.
           </div>

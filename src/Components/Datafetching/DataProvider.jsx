@@ -195,14 +195,14 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     const handleStorageChange = (e) => {
       // Check if the change is for userid or roleid
-      if (e.key === 'userid' || e.key === 'roleid' || !e.key) {
+      if (e.key === "userid" || e.key === "roleid" || !e.key) {
         const sessionUserid = sessionStorage.getItem("userid");
         const sessionRoleid = sessionStorage.getItem("roleid");
-        
+
         if (sessionUserid !== userid) {
           setUseridState(sessionUserid);
         }
-        
+
         if (sessionRoleid !== roleid) {
           setroleidState(sessionRoleid);
         }
@@ -211,24 +211,24 @@ export const DataProvider = ({ children }) => {
 
     // Listen for storage events (for changes in other tabs/windows)
     window.addEventListener("storage", handleStorageChange);
-    
+
     // Check immediately on mount
-    handleStorageChange(new Event('storage'));
-    
+    handleStorageChange(new Event("storage"));
+
     // Set up an interval to check for sessionStorage changes
     const intervalId = setInterval(() => {
       const sessionUserid = sessionStorage.getItem("userid");
       const sessionRoleid = sessionStorage.getItem("roleid");
-      
+
       if (sessionUserid !== userid) {
         setUseridState(sessionUserid);
       }
-      
+
       if (sessionRoleid !== roleid) {
         setroleidState(sessionRoleid);
       }
     }, 500); // Check every 500ms
-    
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(intervalId);

@@ -11,6 +11,8 @@ import DocumentManagementPage from "./Components/DocumentUpload/DocumentManageme
 import UserManagementPage from "./Components/UsersAdd/UserManagementPage";
 import UserAssociation from "./Components/UserAssociation/UserAssociation";
 import { InactivityHandler } from "./Components/Datafetching/InactivityHandler";
+import ChatHistory from "./Components/ChatApp/ChatHistory";
+import ChatApp from "./Components/ChatApp/ChatApp";
 
 function App() {
   return (
@@ -22,15 +24,15 @@ function App() {
             <Route
               path="/Incubation/Dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={[1, 3, 7]}>
                   <Navbar />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/startup/Dashboard/:id"
+              path="/startup/Dashboard"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={[1, 3, 4, 7]}>
                   <StartupDashboard />
                 </ProtectedRoute>
               }
@@ -56,6 +58,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <UserAssociation />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/Incubation/Dashboard/Chats"
+              element={
+                <ProtectedRoute>
+                  <ChatApp />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/Incubation/Dashboard/ChatHistory"
+              element={
+                <ProtectedRoute>
+                  <ChatHistory />
                 </ProtectedRoute>
               }
             />

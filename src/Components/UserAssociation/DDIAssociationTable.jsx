@@ -1,24 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  FaTrash,
-  FaEdit,
-  FaUsers,
-  FaTimes,
-  FaPlus,
-  FaSpinner,
-  FaSearch,
-  FaSort,
-  FaSortUp,
-  FaSortDown,
-} from "react-icons/fa";
+import { FaTrash, FaEdit, FaUsers, FaTimes, FaPlus, FaSpinner, FaSearch, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "./UserAssociationTable.css";
 
-export default function UserAssociationTable() {
+export default function DDIAssociationTable() {
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
   const IP = "http://121.242.232.212:8086";
-
+  
   const [associations, setAssociations] = useState([]);
   const [incubatees, setIncubatees] = useState([]);
   const [users, setUsers] = useState([]);
@@ -33,7 +22,7 @@ export default function UserAssociationTable() {
   const [deletingId, setDeletingId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState(""); // New state for search
-
+  
   // Sorting states
   const [sortColumn, setSortColumn] = useState("usersname");
   const [sortDirection, setSortDirection] = useState("asc");
@@ -42,8 +31,8 @@ export default function UserAssociationTable() {
   const fetchAssociations = () => {
     setLoading(true);
     setError(null);
-
-    fetch(`${IP}/itelinc/resources/generic/getuserasslist`, {
+    
+    fetch(`${IP}/itelinc/resources/generic/getddiassdetails`, {
       method: "POST",
       mode: "cors",
       headers: {
@@ -51,8 +40,8 @@ export default function UserAssociationTable() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        userId: userId || null,
-      }),
+        userId: userId || null
+      })
     })
       .then((res) => {
         if (!res.ok) {
@@ -64,12 +53,12 @@ export default function UserAssociationTable() {
         if (data.statusCode === 200) {
           setAssociations(data.data || []);
         } else {
-          throw new Error(data.message || "Failed to fetch user associations");
+          throw new Error(data.message || "Failed to fetch DDI associations");
         }
       })
       .catch((err) => {
-        console.error("Error fetching user associations:", err);
-        setError("Failed to load user associations. Please try again.");
+        console.error("Error fetching DDI associations:", err);
+        setError("Failed to load DDI associations. Please try again.");
       })
       .finally(() => setLoading(false));
   };
@@ -84,8 +73,8 @@ export default function UserAssociationTable() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        userId: userId || null,
-      }),
+        userId: userId || null
+      })
     })
       .then((res) => {
         if (!res.ok) {
@@ -116,8 +105,8 @@ export default function UserAssociationTable() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        userId: userId || null,
-      }),
+        userId: userId || null
+      })
     })
       .then((res) => {
         if (!res.ok) {
@@ -147,8 +136,9 @@ export default function UserAssociationTable() {
   // Normalize the associations data to handle both associated and unassociated users
   const normalizedData = useMemo(() => {
     const userMap = {};
-
-    associations.forEach((item) => {
+    
+    associations.forEach(item => {
+      // Check if this is an associated user (has usrincassnrecid)
       if (item.usrincassnrecid) {
         const userId = item.usrincassnusersrecid;
         if (!userMap[userId]) {
@@ -156,7 +146,7 @@ export default function UserAssociationTable() {
             usersrecid: userId,
             usersname: item.usersname,
             userscreatedby: item.userscreatedby,
-            associations: [],
+            associations: []
           };
         }
         userMap[userId].associations.push({
@@ -165,21 +155,23 @@ export default function UserAssociationTable() {
           usrincassncreatedtime: item.usrincassncreatedtime,
           usrincassncreatedbyname: item.usrincassncreatedby,
           usrincassnmodifiedtime: item.usrincassnmodifiedtime,
-          usrincassnincubateesrecid: item.usrincassnincubateesrecid,
+          usrincassnincubateesrecid: item.usrincassnincubateesrecid
         });
-      } else {
+      } 
+      // This is an unassociated user (only has usersrecid and usersname)
+      else {
         const userId = item.usersrecid;
         if (!userMap[userId]) {
           userMap[userId] = {
             usersrecid: userId,
             usersname: item.usersname,
             userscreatedby: item.userscreatedby || "N/A",
-            associations: [],
+            associations: []
           };
         }
       }
     });
-
+    
     return Object.values(userMap);
   }, [associations]);
 
@@ -188,9 +180,9 @@ export default function UserAssociationTable() {
     if (!searchQuery.trim()) {
       return normalizedData;
     }
-
+    
     const query = searchQuery.toLowerCase();
-    return normalizedData.filter((user) =>
+    return normalizedData.filter(user => 
       user.usersname.toLowerCase().includes(query)
     );
   }, [normalizedData, searchQuery]);
@@ -198,10 +190,10 @@ export default function UserAssociationTable() {
   // Sort the filtered data based on the current sort column and direction
   const sortedData = useMemo(() => {
     if (!filteredData.length) return [];
-
+    
     return [...filteredData].sort((a, b) => {
       let aValue, bValue;
-
+      
       // Get the values to compare based on the column
       switch (sortColumn) {
         case "usersname":
@@ -215,15 +207,17 @@ export default function UserAssociationTable() {
         default:
           return 0;
       }
-
+      
       // Compare the values
       if (typeof aValue === "string") {
-        return sortDirection === "asc"
+        return sortDirection === "asc" 
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
         // For numbers and dates
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+        return sortDirection === "asc" 
+          ? aValue - bValue
+          : bValue - aValue;
       }
     });
   }, [filteredData, sortColumn, sortDirection]);
@@ -245,19 +239,15 @@ export default function UserAssociationTable() {
     if (sortColumn !== column) {
       return <FaSort className="sort-icon" />;
     }
-    return sortDirection === "asc" ? (
-      <FaSortUp className="sort-icon active" />
-    ) : (
-      <FaSortDown className="sort-icon active" />
-    );
+    return sortDirection === "asc" 
+      ? <FaSortUp className="sort-icon active" />
+      : <FaSortDown className="sort-icon active" />;
   };
 
   // Start editing a user's incubatees
   const startEditing = (user) => {
     setEditingUserId(user.usersrecid);
-    const userIncubatees = user.associations.map(
-      (assoc) => assoc.usrincassnincubateesrecid
-    );
+    const userIncubatees = user.associations.map(assoc => assoc.usrincassnincubateesrecid);
     setSelectedIncubatees(userIncubatees);
   };
 
@@ -276,9 +266,9 @@ export default function UserAssociationTable() {
 
   // Handle checkbox change for edit modal
   const handleCheckboxChange = (incubateeId) => {
-    setSelectedIncubatees((prev) => {
+    setSelectedIncubatees(prev => {
       if (prev.includes(incubateeId)) {
-        return prev.filter((id) => id !== incubateeId);
+        return prev.filter(id => id !== incubateeId);
       } else {
         return [...prev, incubateeId];
       }
@@ -287,9 +277,9 @@ export default function UserAssociationTable() {
 
   // Handle checkbox change for new association modal
   const handleNewCheckboxChange = (incubateeId) => {
-    setSelectedIncubateesForNew((prev) => {
+    setSelectedIncubateesForNew(prev => {
       if (prev.includes(incubateeId)) {
-        return prev.filter((id) => id !== incubateeId);
+        return prev.filter(id => id !== incubateeId);
       } else {
         return [...prev, incubateeId];
       }
@@ -304,244 +294,200 @@ export default function UserAssociationTable() {
   // Update user associations
   const updateAssociations = () => {
     if (!editingUserId) return;
-
+    
     setUpdateLoading(true);
-
+    
     const currentUserAssociations = associations.filter(
-      (assoc) => assoc.usrincassnusersrecid === editingUserId
+      assoc => assoc.usrincassnusersrecid === editingUserId
     );
-
+    
     const currentIncubateeIds = currentUserAssociations.map(
-      (assoc) => assoc.usrincassnincubateesrecid
+      assoc => assoc.usrincassnincubateesrecid
     );
-
-    const toAdd = selectedIncubatees.filter(
-      (id) => !currentIncubateeIds.includes(id)
-    );
+    
+    const toAdd = selectedIncubatees.filter(id => !currentIncubateeIds.includes(id));
     const toRemove = currentUserAssociations.filter(
-      (assoc) => !selectedIncubatees.includes(assoc.usrincassnincubateesrecid)
+      assoc => !selectedIncubatees.includes(assoc.usrincassnincubateesrecid)
     );
-
-    const addPromises = toAdd.map((incubateeId) => {
-      const url = `${IP}/itelinc/addUserIncubationAssociation?usrincassnusersrecid=${editingUserId}&usrincassnincubateesrecid=${incubateeId}&usrincassncreatedby=${
-        userId || "1"
-      }&usrincassnmodifiedby=${userId || "1"}&usrincassnadminstate=1`;
-
+    
+    const addPromises = toAdd.map(incubateeId => {
+      const url = `${IP}/itelinc/addUserIncubationAssociation?usrincassnusersrecid=${editingUserId}&usrincassnincubateesrecid=${incubateeId}&usrincassncreatedby=${userId || "1"}&usrincassnmodifiedby=${userId || "1"}&usrincassnadminstate=1`;
+      
       return fetch(url, {
         method: "POST",
         mode: "cors",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-        },
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data.statusCode !== 200) {
-            throw new Error(data.message || "Failed to add association");
-          }
-          return { success: true, incubateeId, action: "add" };
-        })
-        .catch((error) => {
-          return {
-            success: false,
-            incubateeId,
-            action: "add",
-            error: error.message,
-          };
-        });
-    });
-
-    const removePromises = toRemove.map((association) => {
-      const url = `${IP}/itelinc/deleteUserIncubationAssociation?usrincassnmodifiedby=${
-        userId || "1"
-      }&usrincassnrecid=${association.usrincassnrecid}`;
-
-      return fetch(url, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data.statusCode !== 200) {
-            throw new Error(data.message || "Failed to remove association");
-          }
-          return {
-            success: true,
-            associationId: association.usrincassnrecid,
-            action: "remove",
-          };
-        })
-        .catch((error) => {
-          return {
-            success: false,
-            associationId: association.usrincassnrecid,
-            action: "remove",
-            error: error.message,
-          };
-        });
-    });
-
-    const allPromises = [...addPromises, ...removePromises];
-
-    Promise.all(allPromises)
-      .then((results) => {
-        const successful = results.filter((r) => r.success);
-        const failed = results.filter((r) => !r.success);
-
-        if (failed.length === 0) {
-          Swal.fire(
-            "✅ Success",
-            "User associations updated successfully!",
-            "success"
-          );
-          fetchAssociations();
-          cancelEditing();
-        } else if (successful.length > 0) {
-          const errorMessages = failed
-            .map((f) => {
-              if (f.action === "add") {
-                return `Failed to add incubatee ${f.incubateeId}: ${f.error}`;
-              } else {
-                return `Failed to remove association ${f.associationId}: ${f.error}`;
-              }
-            })
-            .join("<br>");
-
-          Swal.fire({
-            title: "⚠️ Partial Success",
-            html: `${successful.length} operations succeeded, but ${failed.length} failed.<br><br>${errorMessages}`,
-            icon: "warning",
-          });
-          fetchAssociations();
-          cancelEditing();
-        } else {
-          const errorMessages = failed
-            .map((f) => {
-              if (f.action === "add") {
-                return `Failed to add incubatee ${f.incubateeId}: ${f.error}`;
-              } else {
-                return `Failed to remove association ${f.associationId}: ${f.error}`;
-              }
-            })
-            .join("<br>");
-
-          Swal.fire({
-            title: "❌ Error",
-            html: `All operations failed.<br><br>${errorMessages}`,
-            icon: "error",
-          });
         }
       })
-      .catch((err) => {
-        console.error("Error updating user associations:", err);
-        Swal.fire("❌ Error", "Failed to update user associations", "error");
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        return res.json();
       })
-      .finally(() => {
-        setUpdateLoading(false);
+      .then(data => {
+        if (data.statusCode !== 200) {
+          throw new Error(data.message || "Failed to add association");
+        }
+        return { success: true, incubateeId, action: "add" };
+      })
+      .catch(error => {
+        return { success: false, incubateeId, action: "add", error: error.message };
       });
+    });
+    
+    const removePromises = toRemove.map(association => {
+      const url = `${IP}/itelinc/deleteUserIncubationAssociation?usrincassnmodifiedby=${userId || "1"}&usrincassnrecid=${association.usrincassnrecid}`;
+      
+      return fetch(url, {
+        method: "POST",
+        mode: "cors",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({})
+      })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data.statusCode !== 200) {
+          throw new Error(data.message || "Failed to remove association");
+        }
+        return { success: true, associationId: association.usrincassnrecid, action: "remove" };
+      })
+      .catch(error => {
+        return { success: false, associationId: association.usrincassnrecid, action: "remove", error: error.message };
+      });
+    });
+    
+    const allPromises = [...addPromises, ...removePromises];
+    
+    Promise.all(allPromises).then(results => {
+      const successful = results.filter(r => r.success);
+      const failed = results.filter(r => !r.success);
+      
+      if (failed.length === 0) {
+        Swal.fire("✅ Success", "DDI associations updated successfully!", "success");
+        fetchAssociations();
+        cancelEditing();
+      } else if (successful.length > 0) {
+        const errorMessages = failed.map(f => {
+          if (f.action === "add") {
+            return `Failed to add incubatee ${f.incubateeId}: ${f.error}`;
+          } else {
+            return `Failed to remove association ${f.associationId}: ${f.error}`;
+          }
+        }).join('<br>');
+        
+        Swal.fire({
+          title: "⚠️ Partial Success",
+          html: `${successful.length} operations succeeded, but ${failed.length} failed.<br><br>${errorMessages}`,
+          icon: "warning"
+        });
+        fetchAssociations();
+        cancelEditing();
+      } else {
+        const errorMessages = failed.map(f => {
+          if (f.action === "add") {
+            return `Failed to add incubatee ${f.incubateeId}: ${f.error}`;
+          } else {
+            return `Failed to remove association ${f.associationId}: ${f.error}`;
+          }
+        }).join('<br>');
+        
+        Swal.fire({
+          title: "❌ Error",
+          html: `All operations failed.<br><br>${errorMessages}`,
+          icon: "error"
+        });
+      }
+    })
+    .catch(err => {
+      console.error("Error updating DDI associations:", err);
+      Swal.fire("❌ Error", "Failed to update DDI associations", "error");
+    })
+    .finally(() => {
+      setUpdateLoading(false);
+    });
   };
 
   // Create new user association
   const createNewAssociation = () => {
     if (!selectedUser || selectedIncubateesForNew.length === 0) {
-      Swal.fire(
-        "❌ Error",
-        "Please select a user and at least one incubatee",
-        "error"
-      );
+      Swal.fire("❌ Error", "Please select a user and at least one incubatee", "error");
       return;
     }
-
+    
     setUpdateLoading(true);
-
-    const promises = selectedIncubateesForNew.map((incubateeId) => {
-      const url = `${IP}/itelinc/addUserIncubationAssociation?usrincassnusersrecid=${selectedUser}&usrincassnincubateesrecid=${incubateeId}&usrincassncreatedby=${
-        userId || "1"
-      }&usrincassnmodifiedby=${userId || "1"}&usrincassnadminstate=1`;
-
+    
+    const promises = selectedIncubateesForNew.map(incubateeId => {
+      const url = `${IP}/itelinc/addUserIncubationAssociation?usrincassnusersrecid=${selectedUser}&usrincassnincubateesrecid=${incubateeId}&usrincassncreatedby=${userId || "1"}&usrincassnmodifiedby=${userId || "1"}&usrincassnadminstate=1`;
+      
       return fetch(url, {
         method: "POST",
         mode: "cors",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-        },
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data.statusCode !== 200) {
-            throw new Error(data.message || "Failed to create association");
-          }
-          return { success: true, incubateeId };
-        })
-        .catch((error) => {
-          return { success: false, incubateeId, error: error.message };
-        });
-    });
-
-    Promise.all(promises)
-      .then((results) => {
-        const successful = results.filter((r) => r.success);
-        const failed = results.filter((r) => !r.success);
-
-        if (failed.length === 0) {
-          Swal.fire(
-            "✅ Success",
-            "All user associations created successfully!",
-            "success"
-          );
-          fetchAssociations();
-          cancelNewAssociation();
-        } else if (successful.length > 0) {
-          const errorMessages = failed
-            .map((f) => `Incubatee ${f.incubateeId}: ${f.error}`)
-            .join("<br>");
-          Swal.fire({
-            title: "⚠️ Partial Success",
-            html: `${successful.length} associations created successfully, but ${failed.length} failed.<br><br>${errorMessages}`,
-            icon: "warning",
-          });
-          fetchAssociations();
-          cancelNewAssociation();
-        } else {
-          const errorMessages = failed
-            .map((f) => `Incubatee ${f.incubateeId}: ${f.error}`)
-            .join("<br>");
-          Swal.fire({
-            title: "❌ Error",
-            html: `Failed to create any user associations.<br><br>${errorMessages}`,
-            icon: "error",
-          });
         }
       })
-      .catch((err) => {
-        console.error("Error creating user associations:", err);
-        Swal.fire("❌ Error", "Failed to create user associations", "error");
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        return res.json();
       })
-      .finally(() => {
-        setUpdateLoading(false);
+      .then(data => {
+        if (data.statusCode !== 200) {
+          throw new Error(data.message || "Failed to create association");
+        }
+        return { success: true, incubateeId };
+      })
+      .catch(error => {
+        return { success: false, incubateeId, error: error.message };
       });
+    });
+
+    Promise.all(promises).then(results => {
+      const successful = results.filter(r => r.success);
+      const failed = results.filter(r => !r.success);
+
+      if (failed.length === 0) {
+        Swal.fire("✅ Success", "All DDI associations created successfully!", "success");
+        fetchAssociations();
+        cancelNewAssociation();
+      } else if (successful.length > 0) {
+        const errorMessages = failed.map(f => `Incubatee ${f.incubateeId}: ${f.error}`).join('<br>');
+        Swal.fire({
+          title: "⚠️ Partial Success",
+          html: `${successful.length} associations created successfully, but ${failed.length} failed.<br><br>${errorMessages}`,
+          icon: "warning"
+        });
+        fetchAssociations();
+        cancelNewAssociation();
+      } else {
+        const errorMessages = failed.map(f => `Incubatee ${f.incubateeId}: ${f.error}`).join('<br>');
+        Swal.fire({
+          title: "❌ Error",
+          html: `Failed to create any DDI associations.<br><br>${errorMessages}`,
+          icon: "error"
+        });
+      }
+    })
+    .catch(err => {
+      console.error("Error creating DDI associations:", err);
+      Swal.fire("❌ Error", "Failed to create DDI associations", "error");
+    })
+    .finally(() => {
+      setUpdateLoading(false);
+    });
   };
 
   // Delete association
@@ -556,10 +502,8 @@ export default function UserAssociationTable() {
       showLoaderOnConfirm: true,
       preConfirm: () => {
         setIsDeleting(true);
-        const url = `${IP}/itelinc/deleteUserIncubationAssociation?usrincassnmodifiedby=${
-          userId || "1"
-        }&usrincassnrecid=${associationId}`;
-
+        const url = `${IP}/itelinc/deleteUserIncubationAssociation?usrincassnmodifiedby=${userId || "1"}&usrincassnrecid=${associationId}`;
+        
         return fetch(url, {
           method: "POST",
           mode: "cors",
@@ -567,7 +511,7 @@ export default function UserAssociationTable() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({}),
+          body: JSON.stringify({})
         })
           .then((res) => {
             if (!res.ok) {
@@ -589,7 +533,7 @@ export default function UserAssociationTable() {
             setIsDeleting(false);
           });
       },
-      allowOutsideClick: () => !Swal.isLoading(),
+      allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
       if (result.isConfirmed) {
         Swal.fire("Deleted!", "Association deleted successfully!", "success");
@@ -613,10 +557,7 @@ export default function UserAssociationTable() {
   return (
     <div className="user-association-container">
       <div className="user-association-header">
-        <h1 className="user-association-title">
-          <FaUsers style={{ marginRight: "8px" }} />
-          Operator–Incubatee Associations list
-        </h1>
+        <h1 className="user-association-title"><FaUsers style={{ marginRight: "8px" }} />DDI-Incubatee Associations list</h1>
         <div className="search-container">
           <div className="search-input-wrapper">
             <FaSearch className="search-icon" />
@@ -635,26 +576,20 @@ export default function UserAssociationTable() {
           </div>
         </div>
       </div>
-
+      
       {error && <div className="error-message">{error}</div>}
-
+      
       {loading ? (
-        <p className="user-association-empty">Loading user associations...</p>
+        <p className="user-association-empty">Loading DDI associations...</p>
       ) : (
         <div className="table-container">
           <table className="association-table">
             <thead>
               <tr>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("usersname")}
-                >
+                <th className="sortable-header" onClick={() => handleSort("usersname")}>
                   Name {getSortIcon("usersname")}
                 </th>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("userscreatedby")}
-                >
+                <th className="sortable-header" onClick={() => handleSort("userscreatedby")}>
                   Created By {getSortIcon("userscreatedby")}
                 </th>
                 <th>Companies</th>
@@ -666,21 +601,19 @@ export default function UserAssociationTable() {
               {sortedData.map((user) => {
                 const hasAssociations = user.associations.length > 0;
                 const rowCount = Math.max(1, user.associations.length);
-
+                
                 return (
                   <React.Fragment key={user.usersrecid}>
                     {Array.from({ length: rowCount }).map((_, index) => (
-                      <tr
-                        key={`${user.usersrecid}-${index}`}
-                        className="association-row"
-                      >
+                      <tr key={`${user.usersrecid}-${index}`} className="association-row">
                         {index === 0 ? (
                           <>
-                            <td className="user-name-cell" rowSpan={rowCount}>
+                            <td 
+                              className="user-name-cell" 
+                              rowSpan={rowCount}
+                            >
                               <div className="user-info">
-                                <span className="user-name">
-                                  {user.usersname}
-                                </span>
+                                <span className="user-name">{user.usersname}</span>
                                 <button
                                   className="btn-edit"
                                   onClick={() => startEditing(user)}
@@ -690,12 +623,15 @@ export default function UserAssociationTable() {
                                 </button>
                               </div>
                             </td>
-                            <td className="created-by-cell" rowSpan={rowCount}>
+                            <td 
+                              className="created-by-cell" 
+                              rowSpan={rowCount}
+                            >
                               {user.userscreatedby}
                             </td>
                           </>
                         ) : null}
-
+                        
                         {hasAssociations ? (
                           <>
                             <td className="company-cell">
@@ -704,25 +640,17 @@ export default function UserAssociationTable() {
                                   {user.associations[index].incubateesname}
                                 </span>
                                 <span className="association-date">
-                                  {formatDate(
-                                    user.associations[index]
-                                      .usrincassncreatedtime
-                                  )}
+                                  {formatDate(user.associations[index].usrincassncreatedtime)}
                                 </span>
                               </div>
                             </td>
                             <td className="associated-by-cell">
-                              {user.associations[index]
-                                .usrincassncreatedbyname || "N/A"}
+                              {user.associations[index].usrincassncreatedbyname || "N/A"}
                             </td>
                             <td className="delete-cell">
                               <button
                                 className="btn-delete"
-                                onClick={() =>
-                                  handleDelete(
-                                    user.associations[index].usrincassnrecid
-                                  )
-                                }
+                                onClick={() => handleDelete(user.associations[index].usrincassnrecid)}
                                 disabled={isDeleting}
                                 title="Remove association"
                               >
@@ -737,9 +665,7 @@ export default function UserAssociationTable() {
                         ) : (
                           <>
                             <td className="no-association-cell" colSpan="3">
-                              <span className="no-association">
-                                No companies associated
-                              </span>
+                              <span className="no-association">No companies associated</span>
                             </td>
                           </>
                         )}
@@ -750,45 +676,36 @@ export default function UserAssociationTable() {
               })}
             </tbody>
           </table>
-
+          
           {sortedData.length === 0 && (
             <div className="user-association-empty">
-              {searchQuery
-                ? "No users found matching your search"
-                : "No users found"}
+              {searchQuery ? "No DDI users found matching your search" : "No DDI users found"}
             </div>
           )}
         </div>
       )}
-
+      
       {/* Edit Modal */}
       {editingUserId && (
         <div className="user-association-modal-backdrop">
           <div className="user-association-modal-content">
             <div className="user-association-modal-header">
-              <h3>Edit User Associations</h3>
+              <h3>Edit DDI Associations</h3>
               <button className="btn-close" onClick={cancelEditing}>
                 <FaTimes size={20} />
               </button>
             </div>
-
+            
             <div className="user-association-modal-body">
               <h4>Select Incubatees:</h4>
               <div className="incubatees-checklist">
-                {incubatees.map((incubatee) => (
-                  <div
-                    key={incubatee.incubateesrecid}
-                    className="incubatee-checkbox-item"
-                  >
+                {incubatees.map(incubatee => (
+                  <div key={incubatee.incubateesrecid} className="incubatee-checkbox-item">
                     <input
                       type="checkbox"
                       id={`incubatee-${incubatee.incubateesrecid}`}
-                      checked={selectedIncubatees.includes(
-                        incubatee.incubateesrecid
-                      )}
-                      onChange={() =>
-                        handleCheckboxChange(incubatee.incubateesrecid)
-                      }
+                      checked={selectedIncubatees.includes(incubatee.incubateesrecid)}
+                      onChange={() => handleCheckboxChange(incubatee.incubateesrecid)}
                       disabled={updateLoading}
                     />
                     <label htmlFor={`incubatee-${incubatee.incubateesrecid}`}>
@@ -798,17 +715,13 @@ export default function UserAssociationTable() {
                 ))}
               </div>
             </div>
-
+            
             <div className="user-association-modal-footer">
-              <button
-                className="btn-cancel"
-                onClick={cancelEditing}
-                disabled={updateLoading}
-              >
+              <button className="btn-cancel" onClick={cancelEditing} disabled={updateLoading}>
                 Cancel
               </button>
-              <button
-                className="btn-save"
+              <button 
+                className="btn-save" 
                 onClick={updateAssociations}
                 disabled={updateLoading}
               >
@@ -821,7 +734,7 @@ export default function UserAssociationTable() {
                 )}
               </button>
             </div>
-
+            
             {updateLoading && (
               <div className="modal-loading-overlay">
                 <div className="modal-loading-spinner">
@@ -833,75 +746,62 @@ export default function UserAssociationTable() {
           </div>
         </div>
       )}
-
+      
       {/* New Association Modal */}
       {showNewAssociationModal && (
         <div className="user-association-modal-backdrop">
           <div className="user-association-modal-content">
             <div className="user-association-modal-header">
-              <h3>Associate New Operator</h3>
+              <h3>Associate New DDI</h3>
               <button className="btn-close" onClick={cancelNewAssociation}>
                 <FaTimes size={20} />
               </button>
             </div>
-
+            
             <div className="user-association-modal-body">
               <div className="form-group">
-                <label htmlFor="user-select">Select User:</label>
-                <select
-                  id="user-select"
+                <label htmlFor="user-select">Select DDI:</label>
+                <select 
+                  id="user-select" 
                   className="user-select"
                   value={selectedUser}
                   onChange={handleUserChange}
                   disabled={updateLoading}
                 >
-                  <option value="">-- Select User --</option>
-                  {users.map((user) => (
+                  <option value="">-- Select DDI --</option>
+                  {users.map(user => (
                     <option key={user.usersrecid} value={user.usersrecid}>
                       {user.usersname}
                     </option>
                   ))}
                 </select>
               </div>
-
+              
               <h4>Select Incubatees:</h4>
               <div className="incubatees-checklist">
-                {incubatees.map((incubatee) => (
-                  <div
-                    key={incubatee.incubateesrecid}
-                    className="incubatee-checkbox-item"
-                  >
+                {incubatees.map(incubatee => (
+                  <div key={incubatee.incubateesrecid} className="incubatee-checkbox-item">
                     <input
                       type="checkbox"
                       id={`new-incubatee-${incubatee.incubateesrecid}`}
-                      checked={selectedIncubateesForNew.includes(
-                        incubatee.incubateesrecid
-                      )}
-                      onChange={() =>
-                        handleNewCheckboxChange(incubatee.incubateesrecid)
-                      }
+                      checked={selectedIncubateesForNew.includes(incubatee.incubateesrecid)}
+                      onChange={() => handleNewCheckboxChange(incubatee.incubateesrecid)}
                       disabled={updateLoading}
                     />
-                    <label
-                      htmlFor={`new-incubatee-${incubatee.incubateesrecid}`}
-                    >
+                    <label htmlFor={`new-incubatee-${incubatee.incubateesrecid}`}>
                       {incubatee.incubateesname}
                     </label>
                   </div>
                 ))}
               </div>
             </div>
-
+            
             <div className="user-association-modal-footer">
-              <button
-                className="btn-cancel"
-                onClick={cancelNewAssociation}
-                disabled={updateLoading}
-              >
+              <button className="btn-cancel" onClick={cancelNewAssociation} disabled={updateLoading}>
                 Cancel
               </button>
-              <button
-                className="btn-save"
+              <button 
+                className="btn-save" 
                 onClick={createNewAssociation}
                 disabled={updateLoading}
               >
@@ -914,7 +814,7 @@ export default function UserAssociationTable() {
                 )}
               </button>
             </div>
-
+            
             {updateLoading && (
               <div className="modal-loading-overlay">
                 <div className="modal-loading-spinner">

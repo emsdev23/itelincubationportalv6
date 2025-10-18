@@ -1,0 +1,346 @@
+/* src/components/Message.css */
+.message {
+  margin-bottom: 15px;
+  max-width: 70%;
+  display: flex;
+  flex-direction: column;
+}
+
+.own-message {
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.other-message {
+  align-self: flex-start;
+}
+
+.message-sender {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.reply-indicator {
+  background-color: #f0f0f0;
+  padding: 5px 10px;
+  border-radius: 10px 10px 0 0;
+  margin-bottom: 0;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.message-content {
+  padding: 10px 15px;
+  border-radius: 18px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  position: relative;
+}
+
+.own-message .message-content {
+  background-color: #4a6da7;
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+
+.other-message .message-content {
+  background-color: #e5e5ea;
+  color: #333;
+  border-bottom-left-radius: 5px;
+}
+
+.message-attachment {
+  margin-top: 5px;
+}
+
+.message-attachment a {
+  color: #4a6da7;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.message-attachment a:hover {
+  text-decoration: underline;
+}
+
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+  padding: 0 5px;
+}
+
+.message-time {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+.reply-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  color: #4a6da7;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+.reply-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.message-attachment {
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.image-attachment {
+  max-width: 300px;
+}
+
+.attachment-preview {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.attachment-preview:hover {
+  transform: scale(1.02);
+}
+
+/* WhatsApp-style file attachment */
+.file-attachment.whatsapp-style {
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-height: 60px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.file-attachment.whatsapp-style:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.file-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.file-icon {
+  font-size: 20px;
+}
+
+.file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 2px;
+  word-break: break-all;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-type {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.download-icon {
+  font-size: 18px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+/* Attachment Preview Modal */
+.attachment-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.preview-container {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.preview-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.preview-content {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.preview-loading {
+  font-size: 18px;
+  color: #666;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.preview-pdf {
+  width: 100%;
+  height: 70vh;
+  border: none;
+}
+
+.preview-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 100%;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+.preview-file-info {
+  text-align: center;
+  padding: 20px;
+}
+
+.file-icon-large {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.preview-error {
+  color: #e74c3c;
+  text-align: center;
+  padding: 20px;
+}
+
+.preview-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  gap: 10px;
+}
+
+.download-btn, .open-in-new-tab-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.download-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.download-btn:hover {
+  background-color: #45a049;
+}
+
+.open-in-new-tab-btn {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.open-in-new-tab-btn:hover {
+  background-color: #e1e1e1;
+}
+
+/* Update the file attachment preview to show preview icon instead of download */
+.message-attachment.file-attachment.whatsapp-style .preview-icon {
+  font-size: 20px;
+  margin-left: 10px;
+}

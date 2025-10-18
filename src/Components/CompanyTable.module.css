@@ -1,192 +1,921 @@
+/* Card Container */
 .card {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 16px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
+/* Header Section */
 .cardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
+.cardHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Export Buttons */
+.exportButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.exportButton {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exportButton:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.exportButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.disabledButton {
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+  transform: none !important;
+}
+
+.disabledButton:hover {
+  background: #9ca3af !important;
+  transform: none !important;
+}
+
+/* Filters Section */
 .filters {
   display: flex;
-  gap: 12px;
-  margin: 16px 0;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
-.input,
+.input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
 .select {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 150px;
 }
 
-.tableWrapper {
-  overflow-x: auto;
+.select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th {
-  text-align: left;
-  padding: 8px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.table td {
-  padding: 8px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-/* Badges for stage */
-.badge {
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 12px;
+/* Results Info */
+.resultsInfo {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
   font-weight: 500;
 }
 
-.badge.1 {
-  background: #fef3c7;
-  color: #92400e;
-}
-.badge.2 {
-  background: #d1fae5;
-  color: #065f46;
-}
-.badge.3 {
-  background: #e0e7ff;
-  color: #3730a3;
-}
-.badge.4 {
-  background: #dbeafe;
-  color: #1e3a8a;
-}
-.badge.5 {
-  background: #fde68a;
-  color: #78350f;
+/* Table Wrapper */
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
 }
 
-.noData {
-  text-align: center;
-  padding: 16px;
+/* Table Styles - FIXED HEADER ALIGNMENT */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  table-layout: fixed;
+}
+
+/* Table Header Row - ENSURE HORIZONTAL LAYOUT */
+.table thead tr {
+  display: table-row; /* Force table row display */
+}
+
+.table th {
+  background: #f9fafb;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: table-cell; /* Ensure proper table cell display */
+  vertical-align: middle;
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #1f2937;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: table-cell; /* Ensure proper table cell display */
+}
+
+.table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Column-specific widths for better alignment */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+  width: 25%; /* Company Name */
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  width: 20%; /* Field of Work */
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  width: 15%; /* Stage */
+}
+
+.table th:nth-child(4),
+.table td:nth-child(4) {
+  width: 15%; /* Date of Incorporation */
+}
+
+.table th:nth-child(5),
+.table td:nth-child(5) {
+  width: 15%; /* Date of Incubation */
+}
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+  width: 10%; /* Actions */
+}
+
+/* Sortable Headers - FIXED */
+.sortableHeader {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  display: inline-flex; /* Changed from flex to inline-flex */
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem; /* Added gap for better spacing */
+}
+
+.sortableHeader:hover {
+  background-color: #f3f4f6;
+}
+
+/* Sort Indicators */
+.sortIndicator {
+  font-size: 12px;
+  display: inline-block;
+  transition: all 0.2s ease;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-left: auto; /* Push to the right */
+}
+
+.activeSort {
+  color: #4f46e5;
+}
+
+.inactiveSort {
+  color: #9ca3af;
+  opacity: 0.7;
+}
+
+.sortableHeader:hover .inactiveSort {
+  opacity: 1;
   color: #6b7280;
 }
 
-.buttonSmall {
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.25rem;
+  text-transform: capitalize;
+  white-space: nowrap;
 }
 
-.buttonSmall:hover {
-  background: #e5e7eb;
+/* Stage Badge Colors */
+.badge[style*="1"],
+.stage1 {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge[style*="2"],
+.stage2 {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge[style*="3"],
+.stage3 {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge[style*="4"],
+.stage4 {
+  background: #fde68a;
+  color: #92400e;
+}
+
+.badge[style*="5"],
+.stage5 {
+  background: #fbcfe8;
+  color: #831843;
+}
+
+/* Primary Button */
+.buttonPrimary {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.buttonPrimary:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.buttonPrimary:active {
+  transform: translateY(0);
+}
+
+/* No Data Message */
+.noData {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.paginationBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.paginationBtn:hover:not(.disabled) {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.paginationBtn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pageNumber {
+  min-width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0 0.125rem;
+}
+
+.pageNumber.active {
+  background: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
+}
+
+.pageNumber:hover:not(.active) {
+  background: #f3f4f6;
+}
+
+.ellipsis {
+  padding: 0 0.5rem;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .input,
+  .select {
+    width: 100%;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .exportButtons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .exportButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Adjust column widths for mobile */
+  .table {
+    table-layout: auto;
+  }
+
+  .table th,
+  .table td {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .exportButton {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.loading::after {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #4f46e5;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 0.5rem;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Focus States for Accessibility */
+.exportButton:focus,
+.buttonPrimary:focus,
+.paginationBtn:focus,
+.input:focus,
+.select:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+  .exportButtons,
+  .filters,
+  .pagination {
+    display: none;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+
+  .table {
+    font-size: 10pt;
+  }
 }
 
 /* Add these styles to your CompanyTable.module.css */
 
-/* Results info styling */
-.resultsInfo {
-  margin-bottom: 1rem;
-  color: #666;
-  font-size: 0.9rem;
-}
-
-/* Pagination container */
-.pagination {
+/* Document Name Styling */
+.documentName {
   display: flex;
-  justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 1.5rem;
-  padding: 1rem 0;
 }
 
-/* Pagination buttons */
-.paginationBtn {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  background: white;
-  color: #333;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-  min-width: 40px;
+.fileIcon {
+  font-size: 1rem;
 }
 
-.paginationBtn:hover:not(.disabled) {
-  background: #f8f9fa;
-  border-color: #007bff;
+/* Error State */
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: #ef4444;
+  background-color: #fef2f2;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
 }
 
-/* Page number buttons */
-.pageNumber {
-  font-weight: 500;
-}
-
-/* Active page button */
-.paginationBtn.active {
-  background: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
-.paginationBtn.active:hover {
-  background: #0056b3;
-}
-
-/* Disabled state */
-.paginationBtn.disabled {
-  background: #f8f9fa;
-  color: #6c757d;
-  border-color: #dee2e6;
-  cursor: not-allowed;
-}
-
-/* Ellipsis for page numbers */
-.ellipsis {
-  padding: 0.5rem;
-  color: #6c757d;
-}
-
-/* Mobile responsive pagination */
-@media (max-width: 768px) {
-  .pagination {
-    gap: 0.25rem;
-  }
-
-  .paginationBtn {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.8rem;
-    min-width: 35px;
-  }
-
-  .ellipsis {
-    padding: 0.4rem 0.2rem;
-  }
-}
-
-/* Update filters to be more responsive */
-.filters {
+/* Export Buttons */
+.exportButtons {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.exportButton {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exportButton:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.exportButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.disabledButton {
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+  transform: none !important;
+}
+
+.disabledButton:hover {
+  background: #9ca3af !important;
+  transform: none !important;
+}
+
+/* Sortable Headers */
+.sortableHeader {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.sortableHeader:hover {
+  background-color: #f3f4f6;
+}
+
+/* Sort Indicators */
+.sortIndicator {
+  font-size: 12px;
+  display: inline-block;
+  transition: all 0.2s ease;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.activeSort {
+  color: #4f46e5;
+}
+
+.inactiveSort {
+  color: #9ca3af;
+  opacity: 0.7;
+}
+
+.sortableHeader:hover .inactiveSort {
+  opacity: 1;
+  color: #6b7280;
+}
+
+/* Table Styles for DDI Documents */
+.table {
+  width: 100%;
+  min-width: 1000px; /* Set a minimum width to ensure all columns are visible */
+  border-collapse: collapse;
+  background: white;
+  table-layout: auto; /* Changed from fixed to auto for better content fitting */
+}
+
+.table th {
+  background: #f9fafb;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: table-cell;
+  vertical-align: middle;
+  min-width: 100px; /* Ensure minimum width for all headers */
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #1f2937;
+  vertical-align: middle;
+  display: table-cell;
+  /* Allow text wrapping for long content */
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 200px; /* Set a max width to prevent extremely wide columns */
+}
+
+/* Column-specific widths for DDI Documents */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+  min-width: 200px; /* Document Name */
+  max-width: 250px;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  min-width: 150px; /* Company */
+  max-width: 200px;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  min-width: 120px; /* Stage */
+  max-width: 150px;
+}
+
+.table th:nth-child(4),
+.table td:nth-child(4) {
+  min-width: 150px; /* Uploaded By */
+  max-width: 180px;
+}
+
+.table th:nth-child(5),
+.table td:nth-child(5) {
+  min-width: 120px; /* Upload Date */
+  max-width: 150px;
+}
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+  min-width: 120px; /* Visibility */
+  max-width: 150px;
+}
+
+.table th:nth-child(7),
+.table td:nth-child(7) {
+  min-width: 150px; /* Actions - ENSURE BUTTONS ARE VISIBLE */
+  max-width: 180px;
+}
+
+/* Responsive design for DDI Documents */
+@media (max-width: 1200px) {
+  .table {
+    min-width: 900px;
+  }
 }
 
 @media (max-width: 768px) {
-  .filters {
-    flex-direction: column;
-    gap: 0.5rem;
+  .table {
+    min-width: 700px;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Add these styles to your CompanyTable.module.css */
+
+/* Document Name Styling */
+.documentName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fileIcon {
+  font-size: 1rem;
+}
+
+/* Error State */
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: #ef4444;
+  background-color: #fef2f2;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+/* Export Buttons */
+.exportButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.exportButton {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exportButton:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.exportButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.disabledButton {
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+  transform: none !important;
+}
+
+.disabledButton:hover {
+  background: #9ca3af !important;
+  transform: none !important;
+}
+
+/* Sortable Headers */
+.sortableHeader {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.sortableHeader:hover {
+  background-color: #f3f4f6;
+}
+
+/* Sort Indicators */
+.sortIndicator {
+  font-size: 12px;
+  display: inline-block;
+  transition: all 0.2s ease;
+  font-weight: bold;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.activeSort {
+  color: #4f46e5;
+}
+
+.inactiveSort {
+  color: #9ca3af;
+  opacity: 0.7;
+}
+
+.sortableHeader:hover .inactiveSort {
+  opacity: 1;
+  color: #6b7280;
+}
+
+/* Table Styles for DDI Documents */
+.table {
+  width: 100%;
+  min-width: 1000px; /* Set a minimum width to ensure all columns are visible */
+  border-collapse: collapse;
+  background: white;
+  table-layout: auto; /* Changed from fixed to auto for better content fitting */
+}
+
+.table th {
+  background: #f9fafb;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: table-cell;
+  vertical-align: middle;
+  min-width: 100px; /* Ensure minimum width for all headers */
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #1f2937;
+  vertical-align: middle;
+  display: table-cell;
+  /* Allow text wrapping for long content */
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 200px; /* Set a max width to prevent extremely wide columns */
+}
+
+/* Column-specific widths for DDI Documents */
+.table th:nth-child(1),
+.table td:nth-child(1) {
+  min-width: 200px; /* Document Name */
+  max-width: 250px;
+}
+
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  min-width: 150px; /* Company */
+  max-width: 200px;
+}
+
+.table th:nth-child(3),
+.table td:nth-child(3) {
+  min-width: 120px; /* Stage */
+  max-width: 150px;
+}
+
+.table th:nth-child(4),
+.table td:nth-child(4) {
+  min-width: 150px; /* Uploaded By */
+  max-width: 180px;
+}
+
+.table th:nth-child(5),
+.table td:nth-child(5) {
+  min-width: 120px; /* Upload Date */
+  max-width: 150px;
+}
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+  min-width: 120px; /* Visibility */
+  max-width: 150px;
+}
+
+.table th:nth-child(7),
+.table td:nth-child(7) {
+  min-width: 150px; /* Actions - ENSURE BUTTONS ARE VISIBLE */
+  max-width: 180px;
+}
+
+/* Responsive design for DDI Documents */
+@media (max-width: 1200px) {
+  .table {
+    min-width: 900px;
+  }
+}
+
+@media (max-width: 768px) {
+  .table {
+    min-width: 700px;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
   }
 }

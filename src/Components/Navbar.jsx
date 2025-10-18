@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import styles from "./Navbar.module.css";
-import { UserRound, X, LogOut, CircleUserRound, FolderDown } from "lucide-react";
+import {
+  UserRound,
+  X,
+  LogOut,
+  CircleUserRound,
+  FolderDown,
+  MessageSquare,
+} from "lucide-react";
 import ITELLogo from "../assets/ITEL_Logo.png";
 import MetricCardDashboard from "./MetricCardDashboard";
 import CompanyFieldChart from "./CompanyFieldChart";
@@ -8,9 +15,12 @@ import FundingStageChart from "./FundingStageChart";
 import DocumentTable from "./DocumentTable";
 import { NavLink, useNavigate } from "react-router-dom";
 import CompanyTable from "./CompanyTable";
+import Swal from "sweetalert2";
 
 import { useContext } from "react";
 import { DataContext } from "../Components/Datafetching/DataProvider";
+import DDIDocumentUploadModal from "./DDI/DDIDocumentUploadModal ";
+import DDIDocumentsTable from "./DDI/DDIDocumentsTable";
 
 const Navbar = () => {
   const {
@@ -21,7 +31,7 @@ const Navbar = () => {
     companyDoc,
     listOfIncubatees,
     clearAllData,
-    roleid  // Get roleid from context
+    roleid, // Get roleid from context
   } = useContext(DataContext);
   const navigate = useNavigate();
 
@@ -57,33 +67,70 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
+    // Step 1️⃣: Ask for confirmation
+    const confirmResult = await Swal.fire({
+      title: "Are you sure?",
+      text: "You will be logged out of your account.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, logout",
+      cancelButtonText: "Cancel",
+    });
+
+    // If user cancels, exit
+    if (!confirmResult.isConfirmed) return;
+
     try {
-      const userid = JSON.parse(sessionStorage.getItem("userid"));
+      // Step 2️⃣: Show loading popup
+      Swal.fire({
+        title: "Logging out...",
+        text: "Please wait while we log you out",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      const userid = String(JSON.parse(sessionStorage.getItem("userid")));
       const token = sessionStorage.getItem("token");
 
       if (!userid || !token) {
-        console.warn("User not logged in or token missing");
+        Swal.close();
+        Swal.fire({
+          icon: "warning",
+          title: "Not Logged In",
+          text: "User session missing or expired",
+        });
         return;
       }
 
-      // Call logout API
+      const currentTime = new Date().toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      });
+
+      // Step 3️⃣: Call logout API
       const response = await fetch(
-        "http://121.242.232.212:8089/itelinc/resources/auth/logout",
+        "http://121.242.232.212:8086/itelinc/resources/auth/logout",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // if API requires Bearer token
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             userid,
-            logoutreason: "From Postman",
+            reason: `Manual Logout at ${currentTime}`,
           }),
         }
       );
 
       const data = await response.json();
       console.log("Logout response:", data);
+
+      // Step 4️⃣: Handle response
+      Swal.close();
 
       if (response.ok) {
         // Clear all context and session storage
@@ -92,14 +139,32 @@ const Navbar = () => {
         sessionStorage.removeItem("token");
         sessionStorage.removeItem("roleid");
 
-        // Navigate to login
+        // Swal.fire({
+        //   icon: "success",
+        //   title: "Logged out successfully",
+        //   text: "Redirecting to login...",
+        //   timer: 1500,
+        //   showConfirmButton: false,
+        // });
+
         navigate("/", { replace: true });
+
+        // setTimeout(() => navigate("/", { replace: true }), 1200);
       } else {
-        alert(`Logout failed: ${data.message || response.status}`);
+        Swal.fire({
+          icon: "error",
+          title: "Logout Failed",
+          text: data.message || "Something went wrong",
+        });
       }
     } catch (error) {
       console.error("Logout error:", error);
-      alert("Something went wrong while logging out");
+      Swal.close();
+      Swal.fire({
+        icon: "error",
+        title: "Logout Failed",
+        text: "Something went wrong while logging out.",
+      });
     }
   };
 
@@ -111,6 +176,19 @@ const Navbar = () => {
 
   // Check if user has roleid 3 (Incubator Operator)
   const isOperator = Number(roleid) === 3 || Number(sessionRoleid) === 3;
+  const isDueDeeligence = Number(roleid) === 7 || Number(sessionRoleid) === 7;
+
+  const logedinProfile =
+    roleid === "1"
+      ? "Incubator"
+      : roleid === "3"
+      ? "Incubator Operator"
+      : roleid === "7"
+      ? "Due Deligence Inspector"
+      : roleid === "4"
+      ? "Incubatee"
+      : "User";
+  console.log(logedinProfile);
 
   useEffect(() => {}, []);
   return (
@@ -129,8 +207,21 @@ const Navbar = () => {
 
           {/* Right - Actions */}
           <div className={styles.actions}>
+            {/* Chat button now available for all users */}
+            {Number(roleid) !== 7 && (
+              <NavLink
+                to="/Incubation/Dashboard/Chats"
+                style={{ textDecoration: "none" }}
+              >
+                <button className={styles.btnPrimary}>
+                  <MessageSquare className={styles.icon} />
+                  Chat
+                </button>
+              </NavLink>
+            )}
+
             {/* Only show User Management button if roleid is not 3 */}
-            {!isOperator && (
+            {!isOperator && !isDueDeeligence && (
               <NavLink
                 to="/Incubation/Dashboard/Usermanagement"
                 style={{ textDecoration: "none" }}
@@ -143,7 +234,7 @@ const Navbar = () => {
             )}
 
             {/* Only show User Management button if roleid is not 3 */}
-            {!isOperator && (
+            {!isOperator && !isDueDeeligence && (
               <NavLink
                 to="/Incubation/Dashboard/Userassociation"
                 style={{ textDecoration: "none" }}
@@ -156,7 +247,7 @@ const Navbar = () => {
             )}
 
             {/* Only show Document Management button if roleid is not 3 */}
-            {!isOperator && (
+            {!isOperator && !isDueDeeligence && (
               <NavLink
                 to="/Incubation/Dashboard/AddDocuments"
                 style={{ textDecoration: "none" }}
@@ -179,20 +270,26 @@ const Navbar = () => {
             <button
               className={styles.btnPrimary}
               onClick={handleLogout}
-              style={{ color: "#fff", background: "#0ca678" }}
+              style={{ color: "#fff", background: "#fa5252" }}
             >
               <LogOut className={styles.icon} />
               Logout
             </button>
 
-            <div>
-              <button
-                className={styles.btnPrimary}
-                // onClick={() => setIsModalOpen(true)}
-              >
-                <CircleUserRound className={styles.icon} />
-                Incubator
-              </button>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                fontSize: "0.8rem",
+                color: "gray",
+                cursor: "pointer",
+              }}
+              // onClick={() => setIsChangePasswordOpen(true)}
+            >
+              <CircleUserRound />
+              <div>{logedinProfile}</div>
             </div>
           </div>
         </div>
@@ -200,14 +297,23 @@ const Navbar = () => {
 
       {/* Main Content */}
       <main className={styles.main}>
-        <MetricCardDashboard stats={stats} />
-        <div className={styles.charts}>
-          <CompanyFieldChart byField={byField} />
-          <FundingStageChart byStage={byStage} />
-        </div>
+        {roleid === "7" ? "" : <MetricCardDashboard stats={stats} />}
+
+        {roleid === "7" ? (
+          ""
+        ) : (
+          <div className={styles.charts}>
+            <CompanyFieldChart byField={byField} />
+            <FundingStageChart byStage={byStage} />
+          </div>
+        )}
         <CompanyTable companyList={listOfIncubatees} />
         <br />
+        <DDIDocumentUploadModal />
+        <br />
         <DocumentTable />
+        <br />
+        <DDIDocumentsTable />
       </main>
 
       {/* Modal */}

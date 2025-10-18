@@ -31,7 +31,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
       console.log("Sending request to API...");
 
       const response = await axios.post(
-        "http://121.242.232.212:8089/itelinc/resources/auth/forgot-password",
+        "http://121.242.232.212:8086/itelinc/resources/auth/forgot-password",
         { email },
         {
           headers: {

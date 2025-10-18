@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import "./DocCatTable.css";
-import { FaTrash, FaEdit } from "react-icons/fa";
+import { FaTrash, FaEdit, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 
 export default function DocumentsTable() {
   const userId = sessionStorage.getItem("userid");
@@ -27,8 +27,14 @@ export default function DocumentsTable() {
   const [isDeleting, setIsDeleting] = useState({});
   const [isSaving, setIsSaving] = useState(false);
 
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: "ascending",
+  });
+
   // ✅ Fetch documents
-  const IP = "http://121.242.232.212:8089"
+  const IP = "http://121.242.232.212:8086";
   const fetchDocuments = () => {
     setLoading(true);
     setError(null);
@@ -102,17 +108,102 @@ export default function DocumentsTable() {
   // ✅ NEW: Add event listener to refresh dropdown data when category/subcategory changes
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'categoryUpdated' || e.key === 'subcategoryUpdated') {
+      if (e.key === "categoryUpdated" || e.key === "subcategoryUpdated") {
         refreshDropdownData();
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    
+    window.addEventListener("storage", handleStorageChange);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
+
+  // Sorting functions
+  const requestSort = (key) => {
+    let direction = "ascending";
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (columnName) => {
+    if (sortConfig.key !== columnName) {
+      return <FaSort className="sort-icon" />;
+    }
+    return sortConfig.direction === "ascending" ? (
+      <FaSortUp className="sort-icon active" />
+    ) : (
+      <FaSortDown className="sort-icon active" />
+    );
+  };
+
+  // Enhanced sorting function to handle different data types
+  const sortValue = (value, key, originalIndex) => {
+    // Handle null/undefined values
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    // For S.No column, use the original index
+    if (key === "sno") {
+      return originalIndex;
+    }
+
+    // Handle date/time strings
+    if (key === "documentcreatedtime" || key === "documentmodifiedtime") {
+      return value ? new Date(value) : new Date(0);
+    }
+
+    // Handle numeric values
+    if (
+      key === "documentcreatedby" ||
+      key === "documentmodifiedby" ||
+      key === "documentsrecid" ||
+      key === "documentcatrecid" ||
+      key === "documentsubcatrecid" ||
+      key === "documentperiodicityrecid"
+    ) {
+      // Check if it's a numeric ID or a name
+      if (!isNaN(value)) {
+        return parseInt(value, 10);
+      }
+      return value.toString().toLowerCase();
+    }
+
+    // Default to string comparison
+    return value.toString().toLowerCase();
+  };
+
+  // Apply sorting to the data
+  const sortedDocuments = React.useMemo(() => {
+    let sortableDocuments = [...documents];
+    if (sortConfig.key !== null) {
+      sortableDocuments.sort((a, b) => {
+        const aValue = sortValue(
+          a[sortConfig.key],
+          sortConfig.key,
+          documents.indexOf(a)
+        );
+        const bValue = sortValue(
+          b[sortConfig.key],
+          sortConfig.key,
+          documents.indexOf(b)
+        );
+
+        if (aValue < bValue) {
+          return sortConfig.direction === "ascending" ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === "ascending" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableDocuments;
+  }, [documents, sortConfig]);
 
   const openAddModal = () => {
     setEditDoc(null);
@@ -147,19 +238,19 @@ export default function DocumentsTable() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     console.log(`Field changed: ${name} = ${value}`); // Log for debugging
-    
+
     // ✅ Additional debugging for subcategory
     if (name === "documentsubcatrecid") {
       console.log("Subcategory value type:", typeof value);
       console.log("Is subcategory value numeric?", !isNaN(value));
-      
+
       // Find the selected subcategory to verify we're using the ID
-      const selectedSubcat = subcats.find(sc => 
-        sc.documentsubcatrecid === value || sc.docsubcatname === value
+      const selectedSubcat = subcats.find(
+        (sc) => sc.documentsubcatrecid === value || sc.docsubcatname === value
       );
       console.log("Selected subcategory object:", selectedSubcat);
     }
-    
+
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (name === "documentcatrecid") {
@@ -179,8 +270,8 @@ export default function DocumentsTable() {
     }).then((result) => {
       if (result.isConfirmed) {
         // Set loading state for this specific document
-        setIsDeleting(prev => ({ ...prev, [docId]: true }));
-        
+        setIsDeleting((prev) => ({ ...prev, [docId]: true }));
+
         // Show loading popup
         Swal.fire({
           title: "Deleting...",
@@ -190,9 +281,9 @@ export default function DocumentsTable() {
           showConfirmButton: false,
           didOpen: () => {
             Swal.showLoading();
-          }
+          },
         });
-        
+
         const url = `${IP}/itelinc/deleteDocumentDetails?documentsrecid=${docId}&documentmodifiedby=${
           userId || "32"
         }`;
@@ -224,7 +315,7 @@ export default function DocumentsTable() {
           })
           .finally(() => {
             // Remove loading state for this document
-            setIsDeleting(prev => ({ ...prev, [docId]: false }));
+            setIsDeleting((prev) => ({ ...prev, [docId]: false }));
           });
       }
     });
@@ -251,16 +342,21 @@ export default function DocumentsTable() {
 
     // ✅ Find the selected subcategory to ensure we have the right ID
     let subcatId = formData.documentsubcatrecid;
-    
+
     // If the value is not a number, try to find the subcategory by name
     if (isNaN(formData.documentsubcatrecid)) {
       console.log("Subcategory value is not numeric, trying to find by name");
-      const subcatByName = subcats.find(sc => sc.docsubcatname === formData.documentsubcatrecid);
+      const subcatByName = subcats.find(
+        (sc) => sc.docsubcatname === formData.documentsubcatrecid
+      );
       if (subcatByName) {
         subcatId = subcatByName.documentsubcatrecid;
         console.log("Found subcategory by name, using ID:", subcatId);
       } else {
-        console.error("Could not find subcategory by name:", formData.documentsubcatrecid);
+        console.error(
+          "Could not find subcategory by name:",
+          formData.documentsubcatrecid
+        );
         setError("Invalid subcategory selected");
         setIsSaving(false);
         return;
@@ -274,10 +370,10 @@ export default function DocumentsTable() {
 
     // Show loading popup
     const loadingTitle = editDoc ? "Updating..." : "Saving...";
-    const loadingText = editDoc 
-      ? "Please wait while we update the document" 
+    const loadingText = editDoc
+      ? "Please wait while we update the document"
       : "Please wait while we save the document";
-    
+
     Swal.fire({
       title: loadingTitle,
       text: loadingText,
@@ -286,20 +382,23 @@ export default function DocumentsTable() {
       showConfirmButton: false,
       didOpen: () => {
         Swal.showLoading();
-      }
+      },
     });
 
     const params = new URLSearchParams();
     if (editDoc) {
       params.append("documentsrecid", editDoc.documentsrecid);
     }
-    
+
     // ✅ Use the verified IDs
     params.append("documentname", formData.documentname.trim());
     params.append("documentdescription", formData.documentdescription.trim());
     params.append("documentcatrecid", formData.documentcatrecid); // This is the ID
     params.append("documentsubcatrecid", subcatId); // Use the verified ID
-    params.append("documentperiodicityrecid", formData.documentperiodicityrecid);
+    params.append(
+      "documentperiodicityrecid",
+      formData.documentperiodicityrecid
+    );
 
     if (editDoc) {
       params.append("documentmodifiedby", userId || "32");
@@ -313,7 +412,7 @@ export default function DocumentsTable() {
       : `${IP}/itelinc/addDocumentDetails`;
 
     const url = `${baseUrl}?${params.toString()}`;
-    
+
     // ✅ Log the URL for debugging
     console.log("Request URL:", url);
     console.log("Category ID being sent:", formData.documentcatrecid);
@@ -330,7 +429,7 @@ export default function DocumentsTable() {
       .then((res) => res.json())
       .then((data) => {
         console.log("API Response:", data); // Log the response for debugging
-        
+
         if (data.statusCode === 200) {
           if (
             data.data &&
@@ -339,10 +438,12 @@ export default function DocumentsTable() {
             data.data.includes("documents.unique_document_active")
           ) {
             setError("Document already exists");
-            Swal.fire("Duplicate", "Document already exists!", "warning").then(() => {
-              // Reopen the modal if there's a duplicate error
-              setIsModalOpen(true);
-            });
+            Swal.fire("Duplicate", "Document already exists!", "warning").then(
+              () => {
+                // Reopen the modal if there's a duplicate error
+                setIsModalOpen(true);
+              }
+            );
           } else {
             setEditDoc(null);
             refreshData();
@@ -359,10 +460,12 @@ export default function DocumentsTable() {
       .catch((err) => {
         console.error("Error saving document:", err);
         setError(`Failed to save: ${err.message}`);
-        Swal.fire("Error", `Failed to save: ${err.message}`, "error").then(() => {
-          // Reopen the modal if there's an error
-          setIsModalOpen(true);
-        });
+        Swal.fire("Error", `Failed to save: ${err.message}`, "error").then(
+          () => {
+            // Reopen the modal if there's an error
+            setIsModalOpen(true);
+          }
+        );
       })
       .finally(() => setIsSaving(false));
   };
@@ -395,24 +498,81 @@ export default function DocumentsTable() {
           <table className="doccat-table">
             <thead>
               <tr>
-                <th>S.No</th>
-                <th>Category</th>
-                <th>Subcategory</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Periodicity</th>
-                <th>Created By</th>
-                <th>Created Time</th>
-                <th>Modified By</th>
-                <th>Modified Time</th>
+                {/* <th
+                  className="sortable-header"
+                  onClick={() => requestSort("sno")}
+                >
+                  S.No {getSortIcon("sno")}
+                </th> */}
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("documentsrecid")}
+                >
+                  ID {getSortIcon("documentsrecid")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("doccatname")}
+                >
+                  Category {getSortIcon("doccatname")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docsubcatname")}
+                >
+                  Subcategory {getSortIcon("docsubcatname")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("documentname")}
+                >
+                  Name {getSortIcon("documentname")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("documentdescription")}
+                >
+                  Description {getSortIcon("documentdescription")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docperiodicityname")}
+                >
+                  Periodicity {getSortIcon("docperiodicityname")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("documentcreatedby")}
+                >
+                  Created By {getSortIcon("documentcreatedby")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("documentcreatedtime")}
+                >
+                  Created Time {getSortIcon("documentcreatedtime")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("documentmodifiedby")}
+                >
+                  Modified By {getSortIcon("documentmodifiedby")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("documentmodifiedtime")}
+                >
+                  Modified Time {getSortIcon("documentmodifiedtime")}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {documents.length > 0 ? (
-                documents.map((doc, idx) => (
+              {sortedDocuments.length > 0 ? (
+                sortedDocuments.map((doc, idx) => (
                   <tr key={doc.documentsrecid || idx}>
-                    <td>{idx + 1}</td>
+                    {/* <td>{idx + 1}</td> */}
+                    <td>{doc.documentsrecid}</td>
                     <td>{doc.doccatname}</td>
                     <td>{doc.docsubcatname}</td>
                     <td>{doc.documentname}</td>
@@ -424,15 +584,17 @@ export default function DocumentsTable() {
                         : "Admin"}
                     </td>
                     <td>
-                      {new Date(doc.documentcreatedtime).toLocaleString("en-US", {
+                      {new Date(doc.documentcreatedtime)
+                        .toLocaleString("en-US", {
                           month: "short",
                           day: "2-digit",
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit",
-                          hour12: false
-                        }).replace(",", "")}
+                          hour12: false,
+                        })
+                        .replace(",", "")}
                     </td>
                     <td>
                       {isNaN(doc.documentmodifiedby)
@@ -440,15 +602,17 @@ export default function DocumentsTable() {
                         : "Admin"}
                     </td>
                     <td>
-                      {new Date(doc.documentmodifiedtime).toLocaleString("en-US", {
+                      {new Date(doc.documentmodifiedtime)
+                        .toLocaleString("en-US", {
                           month: "short",
                           day: "2-digit",
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit",
-                          hour12: false
-                        }).replace(",", "")}
+                          hour12: false,
+                        })
+                        .replace(",", "")}
                     </td>
                     <td>
                       <button
@@ -470,7 +634,7 @@ export default function DocumentsTable() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="11" className="doccat-empty">
+                  <td colSpan="12" className="doccat-empty">
                     No documents found
                   </td>
                 </tr>
@@ -523,10 +687,7 @@ export default function DocumentsTable() {
                 >
                   <option value="">Select Subcategory</option>
                   {getFilteredSubcategories().map((sc) => (
-                    <option
-                      key={sc.docsubcatrecid}
-                      value={sc.docsubcatrecid}
-                    >
+                    <option key={sc.docsubcatrecid} value={sc.docsubcatrecid}>
                       {sc.docsubcatname}
                     </option>
                   ))}

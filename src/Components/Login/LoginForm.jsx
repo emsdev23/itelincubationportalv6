@@ -20,10 +20,105 @@ const LoginForm = () => {
   });
 
   console.log("email", formData.username);
+
+  //previous
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+
+  //   try {
+  //     const response = await api.post("/auth/login", {
+  //       username: formData.username,
+  //       password: formData.password,
+  //     });
+
+  //     const result = response.data;
+  //     console.log("Login Response:", result);
+
+  //     const { token, userid, roleid } = result.data;
+
+  //     // Save session data
+  //     localStorage.clear();
+  //     sessionStorage.setItem("userid", userid); // no need to stringify
+  //     sessionStorage.setItem("token", token);
+  //     sessionStorage.setItem("roleid", roleid);
+  //     sessionStorage.setItem("email", formData.username);
+
+  //     // Update context so dashboard fetches data automatically
+  //     setUserid(userid);
+  //     setroleid(roleid);
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       password: "",
+  //     }));
+
+  //     // Redirect based on role
+  //     if (roleid === "1") {
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Welcome Incubator!",
+  //         text: "Redirecting...",
+  //         timer: 2000,
+  //         showConfirmButton: false,
+  //       });
+  //       setTimeout(() => navigate("/Incubation/Dashboard"), 1000);
+  //     } else if (roleid === "3") {
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Welcome Incubator Operator!",
+  //         text: "Redirecting...",
+  //         timer: 2000,
+  //         showConfirmButton: false,
+  //       });
+  //       setTimeout(() => navigate("/Incubation/Dashboard"), 1000);
+  //     } else if (roleid === "7") {
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Welcome Due Deligence Inspector!",
+  //         text: "Redirecting...",
+  //         timer: 2000,
+  //         showConfirmButton: false,
+  //       });
+  //       setTimeout(() => navigate("/Incubation/Dashboard"), 1000);
+  //     } else if (roleid === "4") {
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Welcome Incubatee!",
+  //         text: "Redirecting...",
+  //         timer: 2000,
+  //         showConfirmButton: false,
+  //       });
+  //       setTimeout(() => navigate("/startup/Dashboard"), 1000);
+  //     } else {
+  //       Swal.fire({
+  //         icon: "error",
+  //         title: "Oops...",
+  //         text: "Unknown role!",
+  //       });
+  //     }
+  //   } catch (error) {
+  //     console.error("Login error:", error);
+  //     Swal.fire({
+  //       icon: "error",
+  //       title: "Login Failed",
+  //       text: "Invalid username or password",
+  //     });
+  //   }
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
+      // Show loading popup
+      Swal.fire({
+        title: "Logging in...",
+        text: "Please wait while we verify your credentials",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
       const response = await api.post("/auth/login", {
         username: formData.username,
         password: formData.password,
@@ -36,18 +131,21 @@ const LoginForm = () => {
 
       // Save session data
       localStorage.clear();
-      sessionStorage.setItem("userid", userid); // no need to stringify
+      sessionStorage.setItem("userid", userid);
       sessionStorage.setItem("token", token);
       sessionStorage.setItem("roleid", roleid);
       sessionStorage.setItem("email", formData.username);
 
-      // Update context so dashboard fetches data automatically
+      // Update context
       setUserid(userid);
       setroleid(roleid);
       setFormData((prev) => ({
         ...prev,
         password: "",
       }));
+
+      // Close loading popup before showing success
+      Swal.close();
 
       // Redirect based on role
       if (roleid === "1") {
@@ -68,6 +166,15 @@ const LoginForm = () => {
           showConfirmButton: false,
         });
         setTimeout(() => navigate("/Incubation/Dashboard"), 1000);
+      } else if (roleid === "7") {
+        Swal.fire({
+          icon: "success",
+          title: "Welcome Due Diligence Inspector!",
+          text: "Redirecting...",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        setTimeout(() => navigate("/Incubation/Dashboard"), 1000);
       } else if (roleid === "4") {
         Swal.fire({
           icon: "success",
@@ -76,7 +183,7 @@ const LoginForm = () => {
           timer: 2000,
           showConfirmButton: false,
         });
-        setTimeout(() => navigate(`/startup/Dashboard/${userid}`), 1000);
+        setTimeout(() => navigate("/startup/Dashboard"), 1000);
       } else {
         Swal.fire({
           icon: "error",
@@ -86,6 +193,7 @@ const LoginForm = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
+      Swal.close(); // Close loading popup if error occurs
       Swal.fire({
         icon: "error",
         title: "Login Failed",
@@ -189,12 +297,16 @@ const LoginForm = () => {
           </div>
         </div>
 
-        {/* <div className={styles.footer}>
-          <p>
-            Don&apos;t have an account?{" "}
-            <button className={styles.linkBold}>Sign up</button>
-          </p>
-        </div> */}
+        <div className={styles.footer}>
+          <div className={styles.versionContainer}>
+            <span className={styles.versionLabel}>Version</span>
+
+            <span className={styles.versionNumber}> 0.0.2</span>
+          </div>
+          <div className={styles.copyright}>
+            © {new Date().getFullYear()} ITEL. All rights reserved.
+          </div>
+        </div>
       </div>
     </div>
   );

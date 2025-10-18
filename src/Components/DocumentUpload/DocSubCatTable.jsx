@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import "./DocCatTable.css";
-import { FaTrash, FaEdit } from "react-icons/fa";
+import { FaTrash, FaEdit, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import { FaT } from "react-icons/fa6";
 
 export default function DocSubCatTable() {
@@ -20,11 +20,17 @@ export default function DocSubCatTable() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const IP = "http://121.242.232.212:8089"
-  
+  const IP = "http://121.242.232.212:8086";
+
   // New loading states for specific operations
   const [isDeleting, setIsDeleting] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: "ascending",
+  });
 
   // Fetch all subcategories
   const fetchSubCategories = () => {
@@ -69,6 +75,89 @@ export default function DocSubCatTable() {
     refreshData(); // Use refreshData instead of separate calls
   }, []);
 
+  // Sorting functions
+  const requestSort = (key) => {
+    let direction = "ascending";
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (columnName) => {
+    if (sortConfig.key !== columnName) {
+      return <FaSort className="sort-icon" />;
+    }
+    return sortConfig.direction === "ascending" ? (
+      <FaSortUp className="sort-icon active" />
+    ) : (
+      <FaSortDown className="sort-icon active" />
+    );
+  };
+
+  // Enhanced sorting function to handle different data types
+  const sortValue = (value, key, originalIndex) => {
+    // Handle null/undefined values
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    // For S.No column, use the original index
+    if (key === "sno") {
+      return originalIndex;
+    }
+
+    // Handle date/time strings
+    if (key === "docsubcatcreatedtime" || key === "docsubcatmodifiedtime") {
+      return value ? new Date(value) : new Date(0);
+    }
+
+    // Handle numeric values
+    if (
+      key === "docsubcatcreatedby" ||
+      key === "docsubcatmodifiedby" ||
+      key === "docsubcatrecid" ||
+      key === "docsubcatscatrecid"
+    ) {
+      // Check if it's a numeric ID or a name
+      if (!isNaN(value)) {
+        return parseInt(value, 10);
+      }
+      return value.toString().toLowerCase();
+    }
+
+    // Default to string comparison
+    return value.toString().toLowerCase();
+  };
+
+  // Apply sorting to the data
+  const sortedSubcats = React.useMemo(() => {
+    let sortableSubcats = [...subcats];
+    if (sortConfig.key !== null) {
+      sortableSubcats.sort((a, b) => {
+        const aValue = sortValue(
+          a[sortConfig.key],
+          sortConfig.key,
+          subcats.indexOf(a)
+        );
+        const bValue = sortValue(
+          b[sortConfig.key],
+          sortConfig.key,
+          subcats.indexOf(b)
+        );
+
+        if (aValue < bValue) {
+          return sortConfig.direction === "ascending" ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === "ascending" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableSubcats;
+  }, [subcats, sortConfig]);
+
   const openAddModal = () => {
     setEditSubCat(null);
     setFormData({
@@ -111,8 +200,8 @@ export default function DocSubCatTable() {
     }).then((result) => {
       if (result.isConfirmed) {
         // Set loading state for this specific subcategory
-        setIsDeleting(prev => ({ ...prev, [subcatId]: true }));
-        
+        setIsDeleting((prev) => ({ ...prev, [subcatId]: true }));
+
         // Show loading popup
         Swal.fire({
           title: "Deleting...",
@@ -122,9 +211,9 @@ export default function DocSubCatTable() {
           showConfirmButton: false,
           didOpen: () => {
             Swal.showLoading();
-          }
+          },
         });
-        
+
         const deleteUrl = `${IP}/itelinc/deleteDocsubcat?docsubcatrecid=${subcatId}&docsubcatmodifiedby=${
           userId || "32"
         }`;
@@ -156,7 +245,7 @@ export default function DocSubCatTable() {
           })
           .finally(() => {
             // Remove loading state for this subcategory
-            setIsDeleting(prev => ({ ...prev, [subcatId]: false }));
+            setIsDeleting((prev) => ({ ...prev, [subcatId]: false }));
           });
       }
     });
@@ -184,10 +273,10 @@ export default function DocSubCatTable() {
 
     // Show loading popup
     const loadingTitle = editSubCat ? "Updating..." : "Saving...";
-    const loadingText = editSubCat 
-      ? "Please wait while we update the subcategory" 
+    const loadingText = editSubCat
+      ? "Please wait while we update the subcategory"
       : "Please wait while we save the subcategory";
-    
+
     Swal.fire({
       title: loadingTitle,
       text: loadingText,
@@ -196,7 +285,7 @@ export default function DocSubCatTable() {
       showConfirmButton: false,
       didOpen: () => {
         Swal.showLoading();
-      }
+      },
     });
 
     // Build URL parameters safely
@@ -313,22 +402,69 @@ export default function DocSubCatTable() {
           <table className="doccat-table">
             <thead>
               <tr>
-                <th>S.No</th>
-                <th>Category</th>
-                <th>Subcategory Name</th>
-                <th>Description</th>
-                <th>Created By</th>
-                <th>Created Time</th>
-                <th>Modified By</th>
-                <th>Modified Time</th>
+                {/* <th
+                  className="sortable-header"
+                  onClick={() => requestSort("sno")}
+                >
+                  S.No {getSortIcon("sno")}
+                </th> */}
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docsubcatrecid")}
+                >
+                  ID {getSortIcon("docsubcatrecid")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("doccatname")}
+                >
+                  Category {getSortIcon("doccatname")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docsubcatname")}
+                >
+                  Subcategory Name {getSortIcon("docsubcatname")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docsubcatdescription")}
+                >
+                  Description {getSortIcon("docsubcatdescription")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docsubcatcreatedby")}
+                >
+                  Created By {getSortIcon("docsubcatcreatedby")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docsubcatcreatedtime")}
+                >
+                  Created Time {getSortIcon("docsubcatcreatedtime")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docsubcatmodifiedby")}
+                >
+                  Modified By {getSortIcon("docsubcatmodifiedby")}
+                </th>
+                <th
+                  className="sortable-header"
+                  onClick={() => requestSort("docsubcatmodifiedtime")}
+                >
+                  Modified Time {getSortIcon("docsubcatmodifiedtime")}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {subcats.length > 0 ? (
-                subcats.map((subcat, idx) => (
+              {sortedSubcats.length > 0 ? (
+                sortedSubcats.map((subcat, idx) => (
                   <tr key={subcat.docsubcatrecid || idx}>
-                    <td>{idx + 1}</td>
+                    {/* <td>{idx + 1}</td> */}
+                    <td>{subcat.docsubcatrecid}</td>
                     <td>{subcat.doccatname || "N/A"}</td>
                     <td>{subcat.docsubcatname}</td>
                     <td>{subcat.docsubcatdescription}</td>
@@ -338,52 +474,57 @@ export default function DocSubCatTable() {
                         : "Admin"}
                     </td>
                     <td>
-                      {new Date(subcat.docsubcatcreatedtime).toLocaleString("en-US", {
+                      {new Date(subcat.docsubcatcreatedtime)
+                        .toLocaleString("en-US", {
                           month: "short",
                           day: "2-digit",
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit",
-                          hour12: false
-                        }).replace(",", "")}
+                          hour12: false,
+                        })
+                        .replace(",", "")}
                     </td>
                     <td>
                       {isNaN(subcat.docsubcatmodifiedby)
                         ? subcat.docsubcatmodifiedby
                         : "Admin"}
                     </td>
-                    <td>{new Date(subcat.docsubcatmodifiedtime).toLocaleString("en-US", {
+                    <td>
+                      {new Date(subcat.docsubcatmodifiedtime)
+                        .toLocaleString("en-US", {
                           month: "short",
                           day: "2-digit",
                           year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
                           second: "2-digit",
-                          hour12: false
-                        }).replace(",", "")}
-                        </td>
+                          hour12: false,
+                        })
+                        .replace(",", "")}
+                    </td>
                     <td>
                       <button
                         className="btn-edit"
                         onClick={() => openEditModal(subcat)}
                         disabled={isSaving} // Disable when saving
                       >
-                        <FaEdit size={18}/>
+                        <FaEdit size={18} />
                       </button>
                       <button
                         className="btn-delete"
                         onClick={() => handleDelete(subcat.docsubcatrecid)}
                         disabled={isDeleting[subcat.docsubcatrecid] || isSaving} // Disable when deleting or saving
                       >
-                        <FaTrash size={18}/>
+                        <FaTrash size={18} />
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="doccat-empty">
+                  <td colSpan="10" className="doccat-empty">
                     No subcategories found
                   </td>
                 </tr>
