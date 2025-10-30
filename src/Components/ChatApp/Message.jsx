@@ -1,6 +1,7 @@
 // src/components/Message.jsx
 import React, { useState, useEffect } from "react";
 import "./Message.css";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 const Message = ({
   message,
@@ -148,7 +149,7 @@ const Message = ({
   const getFileUrl = async (path) => {
     try {
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/getfileurl",
+        `${IPAdress}/itelinc/resources/generic/getfileurl`,
         {
           method: "POST",
           headers: {
@@ -157,6 +158,7 @@ const Message = ({
           },
           body: JSON.stringify({
             userid: currentUser.id,
+            incUserId: currentUser.incUserId,
             url: path,
           }),
         }

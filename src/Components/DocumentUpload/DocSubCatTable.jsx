@@ -3,10 +3,12 @@ import Swal from "sweetalert2";
 import "./DocCatTable.css";
 import { FaTrash, FaEdit, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import { FaT } from "react-icons/fa6";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 export default function DocSubCatTable() {
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
+  const incUserid = sessionStorage.getItem("incUserid");
 
   const [subcats, setSubcats] = useState([]);
   const [cats, setCats] = useState([]); // categories for dropdown
@@ -20,7 +22,7 @@ export default function DocSubCatTable() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  const IP = "http://121.242.232.212:8089";
+  const IP = IPAdress;
 
   // New loading states for specific operations
   const [isDeleting, setIsDeleting] = useState({});
@@ -34,9 +36,12 @@ export default function DocSubCatTable() {
 
   // Fetch all subcategories
   const fetchSubCategories = () => {
+    const url = `${IP}/itelinc/getDocsubcatAll?incuserid=${encodeURIComponent(
+      incUserid
+    )}`;
     setLoading(true);
     setError(null);
-    fetch(`${IP}/itelinc/getDocsubcatAll`, {
+    fetch(url, {
       method: "GET",
       mode: "cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -55,7 +60,10 @@ export default function DocSubCatTable() {
 
   // Fetch categories for dropdown
   const fetchCategories = () => {
-    fetch(`${IP}/itelinc/getDoccatAll`, {
+    const url = `${IP}/itelinc/getDoccatAll?incuserid=${encodeURIComponent(
+      incUserid
+    )}`;
+    fetch(url, {
       method: "GET",
       mode: "cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },

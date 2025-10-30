@@ -8,8 +8,10 @@ import {
   Calendar,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 const DDIDocumentUploadModal = () => {
+  const incUserid = sessionStorage.getItem("incUserid");
   const [userid, setUserid] = useState(null);
   const [roleid, setRoleid] = useState(null);
   const [selectedCompany, setSelectedCompany] = useState("");
@@ -68,14 +70,14 @@ const DDIDocumentUploadModal = () => {
       const token = sessionStorage.getItem("token");
       const userID = sessionStorage.getItem("userid");
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/getincubatessdash",
+        `${IPAdress}/itelinc/resources/generic/getincubatessdash`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ userId: userID }),
+          body: JSON.stringify({ userId: userID, incUserId: incUserid }),
         }
       );
 
@@ -121,14 +123,14 @@ const DDIDocumentUploadModal = () => {
       const token = sessionStorage.getItem("token");
       const userID = sessionStorage.getItem("userid");
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/getddidoccatdetails",
+        `${IPAdress}/itelinc/resources/generic/getddidoccatdetails`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ userId: userID }),
+          body: JSON.stringify({ userId: userID, incUserId: incUserid }),
         }
       );
 
@@ -324,7 +326,7 @@ const DDIDocumentUploadModal = () => {
 
       const token = sessionStorage.getItem("token");
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/adddocumentddi",
+        `${IPAdress}/itelinc/resources/generic/adddocumentddi`,
         {
           method: "POST",
           headers: {

@@ -12,7 +12,7 @@ const LoginForm = () => {
   const [isForgotOpen, setIsForgotOpen] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
-  const { setUserid, setroleid } = useContext(DataContext); // ✅ access setUserid
+  const { setUserid, setroleid, setincuserid } = useContext(DataContext); // ✅ access setUserid
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
@@ -127,7 +127,7 @@ const LoginForm = () => {
       const result = response.data;
       console.log("Login Response:", result);
 
-      const { token, userid, roleid } = result.data;
+      const { token, userid, roleid, incuserid } = result.data;
 
       // Save session data
       localStorage.clear();
@@ -135,10 +135,12 @@ const LoginForm = () => {
       sessionStorage.setItem("token", token);
       sessionStorage.setItem("roleid", roleid);
       sessionStorage.setItem("email", formData.username);
+      sessionStorage.setItem("incUserid", incuserid);
 
       // Update context
       setUserid(userid);
       setroleid(roleid);
+      setincuserid(incuserid);
       setFormData((prev) => ({
         ...prev,
         password: "",

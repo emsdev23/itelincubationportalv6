@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 const DocumentUploadModal = ({
   isModalOpen,
@@ -6,6 +7,7 @@ const DocumentUploadModal = ({
   incubateesrecid,
   usersrecid,
   onUploadSuccess,
+  incuserid,
 }) => {
   const [userId, setUserId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -66,14 +68,14 @@ const DocumentUploadModal = ({
       try {
         const token = sessionStorage.getItem("token");
         const response = await fetch(
-          "http://121.242.232.212:8086/itelinc/resources/generic/getdoccat",
+          `${IPAdress}/itelinc/resources/generic/getdoccat`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ userId: userId }),
+            body: JSON.stringify({ userId: userId, userIncId: incuserid }),
           }
         );
 
@@ -116,7 +118,7 @@ const DocumentUploadModal = ({
       try {
         const token = sessionStorage.getItem("token");
         const response = await fetch(
-          "http://121.242.232.212:8086/itelinc/resources/generic/getdocsubcat",
+          `${IPAdress}/itelinc/resources/generic/getdocsubcat`,
           {
             method: "POST",
             headers: {
@@ -125,6 +127,7 @@ const DocumentUploadModal = ({
             },
             body: JSON.stringify({
               userid: userId,
+              userIncId: incuserid,
               docid: selectedCategory,
             }),
           }
@@ -168,7 +171,7 @@ const DocumentUploadModal = ({
       try {
         const token = sessionStorage.getItem("token");
         const response = await fetch(
-          "http://121.242.232.212:8086/itelinc/resources/generic/getdocinfo",
+          `${IPAdress}/itelinc/resources/generic/getdocinfo`,
           {
             method: "POST",
             headers: {
@@ -177,6 +180,7 @@ const DocumentUploadModal = ({
             },
             body: JSON.stringify({
               userid: userId,
+              userIncId: incuserid,
               doccatid: parseInt(selectedCategory),
               docsubcatid: parseInt(selectedSubCategory),
             }),
@@ -243,87 +247,6 @@ const DocumentUploadModal = ({
     }
   };
 
-  // const handleUpload = async () => {
-  //   if (
-  //     !selectedFile ||
-  //     !selectedCategory ||
-  //     !selectedSubCategory ||
-  //     !selectedDocInfo
-  //   ) {
-  //     setError("Please fill all fields and select a file");
-  //     return;
-  //   }
-
-  //   setLoading((prev) => ({ ...prev, uploading: true }));
-  //   setError("");
-  //   setSuccess("");
-
-  //   try {
-  //     const base64 = await convertToBase64(selectedFile);
-
-  //     // Extract file extension
-  //     const fileExtension = getFileExtension(selectedFile.name);
-
-  //     const docfordate = selectedDate
-  //       ? new Date(selectedDate).toISOString().split("T")[0] + "T00:00:00"
-  //       : new Date().toISOString().split("T")[0] + "T00:00:00";
-
-  //     const uploadData = {
-  //       filebase64: base64,
-  //       userid: usersrecid,
-  //       incubaterecid: incubateesrecid,
-  //       doccatid: parseInt(selectedCategory),
-  //       docsubcatid: parseInt(selectedSubCategory),
-  //       docid: parseInt(selectedDocInfo),
-  //       docfordate: docfordate,
-  //       filetype: fileExtension, // Add the file extension here
-  //     };
-
-  //     console.log("Upload data:", uploadData);
-
-  //     const token = sessionStorage.getItem("token");
-  //     const response = await fetch(
-  //       "http://121.242.232.212:8086/itelinc/resources/generic/adddocument",
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //         body: JSON.stringify(uploadData),
-  //       }
-  //     );
-
-  //     if (!response.ok) {
-  //       const errorMessage =
-  //         data?.message || `HTTP error! status: ${response.message}`;
-
-  //       throw new Error(errorMessage);
-  //     }
-
-  //     const data = await response.json();
-  //     if (data.statusCode === 200) {
-  //       setSuccess("Document uploaded successfully!");
-
-  //       // Call the onUploadSuccess callback to refresh the parent component
-  //       if (onUploadSuccess) {
-  //         await onUploadSuccess();
-  //       }
-
-  //       setTimeout(() => {
-  //         handleClose();
-  //       }, 1500);
-  //     } else {
-  //       setError("Upload failed: " + (data.message || "Unknown error"));
-  //     }
-  //   } catch (err) {
-  //     setError("Error uploading file: " + (err.message || "Unknown error"));
-  //     console.error("Upload error:", err);
-  //   } finally {
-  //     setLoading((prev) => ({ ...prev, uploading: false }));
-  //   }
-  // };
-
   const handleUpload = async () => {
     if (
       !selectedFile ||
@@ -364,7 +287,7 @@ const DocumentUploadModal = ({
 
       const token = sessionStorage.getItem("token");
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/adddocument",
+        `${IPAdress}/itelinc/resources/generic/adddocument`,
         {
           method: "POST",
           headers: {

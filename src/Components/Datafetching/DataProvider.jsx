@@ -28,6 +28,10 @@ export const DataProvider = ({ children }) => {
     sessionStorage.getItem("roleid") || null
   );
 
+  const [incuserid, setincuseridstate] = useState(
+    sessionStorage.getItem("incuserid") || null
+  );
+
   // Create proper setters that update sessionStorage
   const setUserid = (id) => {
     const idString = id ? String(id) : null;
@@ -39,6 +43,12 @@ export const DataProvider = ({ children }) => {
     const idString = id ? String(id) : null;
     sessionStorage.setItem("roleid", idString);
     setroleidState(idString);
+  };
+
+  const setincuserid = (id) => {
+    const idString = id ? String(id) : null;
+    sessionStorage.setItem("incuserid", idString);
+    setincuseridstate(idString);
   };
 
   const [fromYear, setFromYear] = useState("2025");
@@ -75,6 +85,7 @@ export const DataProvider = ({ children }) => {
       const response = await api.post("/generic/getcollecteddocsdash", {
         userId:
           Number(roleid) === 1 && !adminViewingStartupId ? "ALL" : targetUserId,
+        incUserId: incuserid,
         startYear: fromYear,
         endYear: toYear,
       });
@@ -108,12 +119,14 @@ export const DataProvider = ({ children }) => {
           userId: userId,
           startYear: fromYear,
           endYear: toYear,
+          incUserId: incuserid,
         }
       );
 
       // API call for startup/incubatee details
       const incubateesResponse = await api.post("/generic/getincubatessdash", {
         userId: userId,
+        incUserId: incuserid,
       });
 
       // Process documents data
@@ -189,7 +202,7 @@ export const DataProvider = ({ children }) => {
     if (Number(roleid) === 4 && (adminViewingStartupId || adminviewData)) {
       resetAdminView();
     }
-  }, [userid, roleid]);
+  }, [userid, roleid, incuserid]);
 
   // Effect to sync with sessionStorage
   useEffect(() => {
@@ -198,6 +211,7 @@ export const DataProvider = ({ children }) => {
       if (e.key === "userid" || e.key === "roleid" || !e.key) {
         const sessionUserid = sessionStorage.getItem("userid");
         const sessionRoleid = sessionStorage.getItem("roleid");
+        const sessionIncuserid = sessionStorage.getItem("incuserid");
 
         if (sessionUserid !== userid) {
           setUseridState(sessionUserid);
@@ -205,6 +219,9 @@ export const DataProvider = ({ children }) => {
 
         if (sessionRoleid !== roleid) {
           setroleidState(sessionRoleid);
+        }
+        if (sessionIncuserid !== incuserid) {
+          setincuserid(incuserid);
         }
       }
     };
@@ -219,6 +236,7 @@ export const DataProvider = ({ children }) => {
     const intervalId = setInterval(() => {
       const sessionUserid = sessionStorage.getItem("userid");
       const sessionRoleid = sessionStorage.getItem("roleid");
+      const sessionIncuserid = sessionStorage.getItem("incuserid");
 
       if (sessionUserid !== userid) {
         setUseridState(sessionUserid);
@@ -227,13 +245,16 @@ export const DataProvider = ({ children }) => {
       if (sessionRoleid !== roleid) {
         setroleidState(sessionRoleid);
       }
+      if (sessionIncuserid !== incuserid) {
+        setincuserid(incuserid);
+      }
     }, 500); // Check every 500ms
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(intervalId);
     };
-  }, [userid, roleid]);
+  }, [userid, roleid, incuserid]);
 
   // General data fetch (for admin/users)
   useEffect(() => {
@@ -249,21 +270,34 @@ export const DataProvider = ({ children }) => {
         const apiCalls = [
           {
             name: "stats",
-            call: () => api.post("/generic/getstatscom", { userId: userid }),
+            call: () =>
+              api.post("/generic/getstatscom", {
+                userId: userid,
+                userIncId: incuserid,
+              }),
           },
           {
             name: "field",
-            call: () => api.post("/generic/getcombyfield", { userId: userid }),
+            call: () =>
+              api.post("/generic/getcombyfield", {
+                userId: userid,
+                userIncId: incuserid,
+              }),
           },
           {
             name: "stage",
-            call: () => api.post("/generic/getcombystage", { userId: userid }),
+            call: () =>
+              api.post("/generic/getcombystage", {
+                userId: userid,
+                userIncId: incuserid,
+              }),
           },
           {
             name: "documents",
             call: () =>
               api.post("/generic/getcollecteddocsdash", {
                 userId: Number(roleid) === 1 ? "ALL" : userid,
+                incUserId: incuserid,
                 startYear: fromYear,
                 endYear: toYear,
               }),
@@ -273,6 +307,7 @@ export const DataProvider = ({ children }) => {
             call: () =>
               api.post("/generic/getincubatessdash", {
                 userId: Number(roleid) === 1 ? "ALL" : userid,
+                incUserId: incuserid,
               }),
           },
         ];
@@ -365,7 +400,7 @@ export const DataProvider = ({ children }) => {
     };
 
     fetchData();
-  }, [userid, roleid, fromYear, toYear, adminViewingStartupId]);
+  }, [userid, roleid, fromYear, toYear, adminViewingStartupId, incuserid]);
 
   return (
     <DataContext.Provider
@@ -402,6 +437,8 @@ export const DataProvider = ({ children }) => {
         adminStartupLoading,
         adminviewData,
         setadminviewData,
+        incuserid,
+        setincuserid,
       }}
     >
       {children}

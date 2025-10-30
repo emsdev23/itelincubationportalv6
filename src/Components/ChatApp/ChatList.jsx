@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
 import "./ChatList.css";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 const ChatList = ({
   chatLists,
@@ -14,6 +15,7 @@ const ChatList = ({
   const [activeTab, setActiveTab] = useState("active");
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
+  const incUserid = sessionStorage.getItem("incUserid");
 
   const getChatTypeLabel = (chatTypeId) => {
     const types = {
@@ -78,6 +80,7 @@ const ChatList = ({
     // 3. Construct the Request Body
     const requestBody = {
       chatdetailsfrom: String(currentUser.id),
+      userIncId: String(currentUser.incUserid),
       chatrecid: chat.chatlistrecid,
     };
 
@@ -93,17 +96,14 @@ const ChatList = ({
 
     // 5. Make the API Call
     try {
-      const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/chat/close",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
+      const response = await fetch(`${IPAdress}/itelinc/resources/chat/close`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

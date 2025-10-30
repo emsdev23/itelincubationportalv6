@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import "./DocCatTable.css";
 import { FaTrash, FaEdit, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 export default function DocCatTable() {
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
+  const incUserid = sessionStorage.getItem("incUserid");
 
   const [cats, setCats] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,16 +31,30 @@ export default function DocCatTable() {
   });
 
   // ✅ Fetch all categories
-  const IP = "http://121.242.232.212:8089";
+  const IP = IPAdress;
   const fetchCategories = () => {
     setLoading(true);
     setError(null);
 
-    fetch(`${IP}/itelinc/getDoccatAll`, {
+    // 1. Construct the URL with the query parameter
+    //    Use the exact lowercase name 'incuserid' as required by the server.
+    //    Use encodeURIComponent() to safely handle special characters.
+    const url = `${IP}/itelinc/getDoccatAll?incuserid=${encodeURIComponent(
+      incUserid
+    )}`;
+
+    fetch(url, {
       method: "GET",
       mode: "cors",
+      // 2. REMOVE the 'body' property entirely. It's not allowed for GET.
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          // It's good practice to throw an error if the response is not successful
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         setCats(data.data || []);
         setLoading(false);

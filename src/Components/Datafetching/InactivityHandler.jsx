@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { IPAdress } from "./IPAdrees";
 
 export function InactivityHandler({ children }) {
   const navigate = useNavigate();
@@ -32,17 +33,14 @@ export function InactivityHandler({ children }) {
         // 🕒 Get current date & time
 
         if (userid && token) {
-          await fetch(
-            "http://121.242.232.212:8086/itelinc/resources/auth/logout",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ userid, reason: reason }),
-            }
-          );
+          await fetch(`${IPAdress}/itelinc/resources/auth/logout`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ userid, reason: reason }),
+          });
         }
       } catch (error) {
         console.error("Logout error:", error);

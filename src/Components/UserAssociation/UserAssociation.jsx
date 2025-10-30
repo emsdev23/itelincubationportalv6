@@ -6,6 +6,7 @@ import ITELLogo from "../../assets/ITEL_Logo.png"; // Logo image
 import { NavLink } from "react-router-dom";
 import { FolderDown, MoveLeft } from "lucide-react"; // Icon for the button
 import DDIAssociationTable from "./DDIAssociationTable";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 export default function UserAssociation() {
   return (
@@ -38,10 +39,10 @@ export default function UserAssociation() {
       <main className="doc-management-main">
         <h1>🔗 User Associations Management</h1>
         <section className="doccat-section">
-            <UserAssociationTable />
+          <UserAssociationTable />
         </section>
         <section className="doccat-section">
-            <DDIAssociationTable />
+          <DDIAssociationTable />
         </section>
       </main>
     </div>

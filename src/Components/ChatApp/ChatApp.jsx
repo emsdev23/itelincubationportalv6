@@ -23,6 +23,7 @@ const ChatApp = () => {
     name: sessionStorage.getItem("username") || "User",
     role: sessionStorage.getItem("userrole") || "incubatee",
     roleid: sessionStorage.getItem("roleid") || null,
+    incUserid: sessionStorage.getItem("incUserid") || null,
   });
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
@@ -34,14 +35,14 @@ const ChatApp = () => {
   // Fetch chat lists
   const fetchChatLists = useCallback(async () => {
     try {
-      const data = await getChatLists(currentUser.id);
+      const data = await getChatLists(currentUser.id, currentUser.incUserid);
       setChatLists(data);
       return data;
     } catch (error) {
       console.error("Error fetching chat lists:", error);
       return [];
     }
-  }, [currentUser.id]);
+  }, [currentUser.id, currentUser.incUserid]);
 
   // Fetch messages for a specific chat
   const fetchMessages = useCallback(
@@ -53,7 +54,11 @@ const ChatApp = () => {
           "and userId:",
           currentUser.id
         );
-        const data = await getChatDetails(currentUser.id, chatId);
+        const data = await getChatDetails(
+          currentUser.id,
+          chatId,
+          currentUser.incUserid
+        );
         console.log("Messages data:", data);
 
         const newMessageIds = new Set(data.map((msg) => msg.chatdetailsrecid));
@@ -69,7 +74,7 @@ const ChatApp = () => {
         return [];
       }
     },
-    [currentUser.id]
+    [currentUser.id, currentUser.incUserid]
   );
 
   // Check for new messages
@@ -79,7 +84,11 @@ const ChatApp = () => {
 
       setMessagePolling(true);
       try {
-        const data = await getChatDetails(currentUser.id, chatId);
+        const data = await getChatDetails(
+          currentUser.id,
+          chatId,
+          currentUser.incUserid
+        );
         const storedMessageIds = messageIdsRef.current.get(chatId) || new Set();
 
         const newMessages = data.filter(
@@ -220,6 +229,7 @@ const ChatApp = () => {
         chatdetailstypeid: selectedChat.chatlistchattypeid,
         chatdetailslistid: selectedChat.chatlistrecid,
         chatdetailsfrom: currentUser.id,
+        incUserId: currentUser.incUserid,
         chatdetailsto: selectedChat.chatlistto,
         chatdetailsmessage: messageContent,
         chatdetailsattachmentpath: attachmentBase64 || "",

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styles from "./ForgotPasswordModal.module.css";
 import Swal from "sweetalert2";
 import axios from "axios";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState("");
@@ -31,7 +32,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
       console.log("Sending request to API...");
 
       const response = await axios.post(
-        "http://121.242.232.212:8086/itelinc/resources/auth/forgot-password",
+        `${IPAdress}/itelinc/resources/auth/forgot-password`,
         { email },
         {
           headers: {

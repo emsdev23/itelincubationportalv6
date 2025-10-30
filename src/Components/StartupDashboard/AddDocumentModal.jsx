@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../Datafetching/api"; // your axios instance
 import styles from "./StartupDashboard.module.css";
-
+import { IPAdress } from "../Datafetching/IPAdrees";
 const AddDocumentModal = ({ userid, onClose, onUploadSuccess }) => {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);

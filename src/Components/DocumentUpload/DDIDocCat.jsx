@@ -2,11 +2,12 @@ import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import "./DocCatTable.css";
 import { FaTrash, FaEdit, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 export default function DocCatTable() {
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
-
+  const incUserid = sessionStorage.getItem("incUserid");
   const [cats, setCats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,7 +31,7 @@ export default function DocCatTable() {
   });
 
   // ✅ Fetch all categories with new API
-  const IP = "http://121.242.232.212:8086";
+  const IP = IPAdress;
   const fetchCategories = () => {
     setLoading(true);
     setError(null);
@@ -42,7 +43,10 @@ export default function DocCatTable() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ userId: parseInt(userId) || 1 }),
+      body: JSON.stringify({
+        userId: parseInt(userId) || 1,
+        incUserId: incUserid,
+      }),
     })
       .then((res) => res.json())
       .then((data) => {

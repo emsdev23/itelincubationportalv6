@@ -15,6 +15,7 @@ import { getChatHistory } from "./chatService";
 import "./ChatHistory.css";
 import { useNavigate } from "react-router-dom";
 import ITELLogo from "../../assets/ITEL_Logo.png";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 const ChatHistory = ({ currentUser: propCurrentUser }) => {
   // Get currentUser from prop or sessionStorage
@@ -25,6 +26,7 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
         name: sessionStorage.getItem("username") || "User",
         role: sessionStorage.getItem("userrole") || "incubatee",
         roleid: sessionStorage.getItem("roleid") || null,
+        incUserid: sessionStorage.getItem("incUserid") || null,
       }
   );
 
@@ -47,7 +49,10 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
       try {
         setLoading(true);
         // Use the new API to get all chat details for the current user
-        const data = await getChatHistory(currentUser.id);
+        const data = await getChatHistory(
+          currentUser.id,
+          currentUser.incUserid
+        );
         setChatHistory(data);
       } catch (error) {
         console.error("Error fetching chat history:", error);
@@ -153,7 +158,7 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
   const getFileUrl = async (path) => {
     try {
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/getfileurl",
+        `${IPAdress}/itelinc/resources/generic/getfileurl`,
         {
           method: "POST",
           headers: {
@@ -162,6 +167,7 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
           },
           body: JSON.stringify({
             userid: currentUser.id,
+            incUserId: currentUser.incUserid,
             url: path,
           }),
         }

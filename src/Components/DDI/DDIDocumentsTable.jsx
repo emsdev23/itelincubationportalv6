@@ -4,9 +4,11 @@ import api from "../Datafetching/api";
 import Swal from "sweetalert2";
 import style from "../StartupDashboard/StartupDashboard.module.css";
 import * as XLSX from "xlsx"; // Add this import for Excel export
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 export default function DDIDocumentsTable({ userRecID = "ALL" }) {
   const roleid = sessionStorage.getItem("roleid");
+  const incUserid = sessionStorage.getItem("incUserid");
   const usersrecid = roleid === 7 ? "ALL" : userRecID;
   console.log("User Rec ID:", usersrecid);
   console.log(userRecID);
@@ -50,7 +52,7 @@ export default function DDIDocumentsTable({ userRecID = "ALL" }) {
 
         const response = await api.post(
           "/generic/getddidocs",
-          { userId: usersrecid },
+          { userId: usersrecid, incUserId: incUserid },
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -226,64 +228,64 @@ export default function DDIDocumentsTable({ userRecID = "ALL" }) {
   };
 
   // ✅ Visibility Toggle
-  const handleVisibilityToggle = async (doc) => {
-    const token = sessionStorage.getItem("token");
-    const currentState = doc.ddidocumentsvisibility || 0;
-    const newState = currentState === 1 ? 0 : 1;
+  // const handleVisibilityToggle = async (doc) => {
+  //   const token = sessionStorage.getItem("token");
+  //   const currentState = doc.ddidocumentsvisibility || 0;
+  //   const newState = currentState === 1 ? 0 : 1;
 
-    try {
-      setTogglingDoc(doc.ddidocumentsrecid);
+  //   try {
+  //     setTogglingDoc(doc.ddidocumentsrecid);
 
-      const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/setvisibility",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            docid: doc.ddidocumentsrecid,
-            docpath: doc.ddidocumentsfilepath,
-            docstate: newState,
-          }),
-        }
-      );
+  //     const response = await fetch(
+  //       `${IPAdress}/itelinc/resources/generic/setvisibility`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //         body: JSON.stringify({
+  //           docid: doc.ddidocumentsrecid,
+  //           docpath: doc.ddidocumentsfilepath,
+  //           docstate: newState,
+  //         }),
+  //       }
+  //     );
 
-      const data = await response.json();
+  //     const data = await response.json();
 
-      if (response.ok && data.statusCode === 200) {
-        setDocuments((prevDocs) =>
-          prevDocs.map((d) =>
-            d.ddidocumentsrecid === doc.ddidocumentsrecid
-              ? { ...d, ddidocumentsvisibility: newState }
-              : d
-          )
-        );
+  //     if (response.ok && data.statusCode === 200) {
+  //       setDocuments((prevDocs) =>
+  //         prevDocs.map((d) =>
+  //           d.ddidocumentsrecid === doc.ddidocumentsrecid
+  //             ? { ...d, ddidocumentsvisibility: newState }
+  //             : d
+  //         )
+  //       );
 
-        Swal.fire({
-          icon: "success",
-          title: "Success",
-          text: `Document ${
-            newState === 1 ? "enabled" : "disabled"
-          } successfully`,
-          timer: 2000,
-          showConfirmButton: false,
-        });
-      } else {
-        throw new Error(data.message || "Failed to update visibility");
-      }
-    } catch (error) {
-      console.error("Error toggling visibility:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to update document visibility: " + error.message,
-      });
-    } finally {
-      setTogglingDoc(null);
-    }
-  };
+  //       Swal.fire({
+  //         icon: "success",
+  //         title: "Success",
+  //         text: `Document ${
+  //           newState === 1 ? "enabled" : "disabled"
+  //         } successfully`,
+  //         timer: 2000,
+  //         showConfirmButton: false,
+  //       });
+  //     } else {
+  //       throw new Error(data.message || "Failed to update visibility");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error toggling visibility:", error);
+  //     Swal.fire({
+  //       icon: "error",
+  //       title: "Error",
+  //       text: "Failed to update document visibility: " + error.message,
+  //     });
+  //   } finally {
+  //     setTogglingDoc(null);
+  //   }
+  // };
 
   // ✅ Helper function to download file with proper name
   const downloadFile = async (fileUrl, documentName, originalFilepath) => {
@@ -330,7 +332,7 @@ export default function DDIDocumentsTable({ userRecID = "ALL" }) {
       const userid = sessionStorage.getItem("userid");
 
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/getfileurl",
+        `${IPAdress}/itelinc/resources/generic/getfileurl`,
         {
           method: "POST",
           headers: {
@@ -339,6 +341,7 @@ export default function DDIDocumentsTable({ userRecID = "ALL" }) {
           },
           body: JSON.stringify({
             userid: userid,
+            incUserid: incUserid,
             url: filepath,
           }),
         }

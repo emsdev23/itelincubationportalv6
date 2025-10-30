@@ -1,4 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import Swal from "sweetalert2";
 import "./DocCatTable.css";
 import {
@@ -18,18 +23,27 @@ import {
   FaFileWord,
   FaFileExcel,
   FaFileAlt,
+  FaEye,
+  FaDownload,
 } from "react-icons/fa";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
-export default function DocumentsTable() {
+// Using forwardRef to allow parent components to access methods
+const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
   const roleid = sessionStorage.getItem("roleid");
+  const incUserid = sessionStorage.getItem("incUserid");
 
   const [documents, setDocuments] = useState([]);
   const [cats, setCats] = useState([]);
   const [subcats, setSubcats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewContent, setPreviewContent] = useState(null);
   const [editDoc, setEditDoc] = useState(null);
   const [formData, setFormData] = useState({
     documentname: "",
@@ -60,6 +74,7 @@ export default function DocumentsTable() {
   // New loading states for specific operations
   const [isDeleting, setIsDeleting] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState({
@@ -68,11 +83,19 @@ export default function DocumentsTable() {
   });
 
   // ✅ Fetch documents
-  const IP = "http://121.242.232.212:8089";
+  const IP = IPAdress;
+
+  // Expose the openAddModal function to parent components
+  useImperativeHandle(ref, () => ({
+    openAddModal,
+  }));
 
   const fetchDocuments = () => {
+    const url = `${IP}/itelinc/api/documents/getDocumentsAll?incuserid=${encodeURIComponent(
+      incUserid
+    )}`;
     setLoading(true);
-    fetch(`${IP}/itelinc/api/documents/getDocumentsAll`, {
+    fetch(url, {
       method: "GET",
       mode: "cors",
       headers: { "Content-Type": "application/json" },
@@ -91,7 +114,10 @@ export default function DocumentsTable() {
 
   // ✅ Fetch categories independently
   const fetchCategories = () => {
-    fetch(`${IP}/itelinc/getDoccatAll`, {
+    const url = `${IP}/itelinc/getDoccatAll?incuserid=${encodeURIComponent(
+      incUserid
+    )}`;
+    fetch(url, {
       method: "GET",
       mode: "cors",
     })
@@ -107,7 +133,10 @@ export default function DocumentsTable() {
 
   // ✅ Fetch subcategories independently
   const fetchSubCategories = () => {
-    fetch(`${IP}/itelinc/getDocsubcatAll`, {
+    const url = `${IP}/itelinc/getDocsubcatAll?incuserid=${encodeURIComponent(
+      incUserid
+    )}`;
+    fetch(url, {
       method: "GET",
       mode: "cors",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -398,6 +427,35 @@ export default function DocumentsTable() {
     }
   };
 
+  // ✅ NEW: Function to get file type text based on file extension
+  const getFileTypeText = (fileName) => {
+    if (!fileName) return "FILE";
+
+    const extension = fileName.split(".").pop().toLowerCase();
+
+    switch (extension) {
+      case "pdf":
+        return "PDF";
+      case "doc":
+      case "docx":
+        return "DOCUMENT";
+      case "xls":
+      case "xlsx":
+        return "SPREADSHEET";
+      case "txt":
+        return "TEXT";
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+      case "bmp":
+      case "webp":
+        return "IMAGE";
+      default:
+        return "FILE";
+    }
+  };
+
   // ✅ UPDATED: Function to get filename with datetime
   const getFilenameWithDateTime = (originalName) => {
     if (!originalName) return "";
@@ -415,16 +473,103 @@ export default function DocumentsTable() {
     return `${originalName}_${dateTimeString}`;
   };
 
-  // ✅ UPDATED: Function to download document using POST API without exposing URL
+  // ✅ UPDATED: Function to get file URL from API with better error handling
+  const getFileUrl = async (path) => {
+    try {
+      console.log("Getting file URL for path:", path);
+
+      const response = await fetch(
+        `${IP}/itelinc/resources/generic/getfileurl`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userid: userId || "39",
+            url: path,
+          }),
+        }
+      );
+
+      console.log("Get file URL response status:", response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Get file URL response data:", data);
+
+      if (data.statusCode === 200 && data.data) {
+        return data.data; // Return the URL from the response
+      } else {
+        throw new Error(data.message || "Invalid response format");
+      }
+    } catch (error) {
+      console.error("Error getting file URL:", error);
+      throw error;
+    }
+  };
+
+  // ✅ NEW: Helper function to process blob and trigger download (from Message component)
+  const processBlobDownload = (blob, docName) => {
+    try {
+      // Debug: Log blob information
+      console.log("Blob size:", blob.size);
+      console.log("Blob type:", blob.type);
+
+      if (blob.size === 0) {
+        throw new Error("Downloaded file is empty");
+      }
+
+      // Create a blob URL (this is temporary and not exposed to user)
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // Get filename with datetime
+      const filenameWithDateTime = getFilenameWithDateTime(docName);
+
+      // Create a temporary link element to trigger download
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filenameWithDateTime;
+      link.style.display = "none";
+
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the blob URL after download
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 100);
+
+      showToast(`Downloaded ${filenameWithDateTime}`, "success");
+      return blob; // Return the blob for further processing if needed
+    } catch (error) {
+      console.error("Error processing blob download:", error);
+      throw error;
+    }
+  };
+
+  // ✅ UPDATED: Function to download document using approach from Message component
   const downloadDocument = async (docPath, docName) => {
     if (!docPath) {
       showToast("Document not available", "warning");
       return null;
     }
 
+    setIsDownloading(true);
+
     try {
       // Show loading notification
       showToast(`Preparing download for ${docName}...`, "info");
+
+      // Debug: Log the document path
+      console.log("Document path:", docPath);
+      console.log("Document name:", docName);
 
       // Call the POST API to get the download URL
       const response = await fetch(
@@ -443,9 +588,20 @@ export default function DocumentsTable() {
         }
       );
 
+      // Debug: Log the response
+      console.log("Get file URL response status:", response.status);
+      console.log("Get file URL response headers:", response.headers);
+
       const data = await response.json();
+      console.log("Get file URL response data:", data);
 
       if (data.statusCode === 200 && data.data) {
+        // Debug: Log the file URL
+        console.log("File URL received:", data.data);
+
+        // Use the filename from the API response with datetime
+        const downloadFileName = getFilenameWithDateTime(docName);
+
         // Fetch the actual file as a blob (this prevents URL exposure)
         const fileResponse = await fetch(data.data, {
           method: "GET",
@@ -455,36 +611,35 @@ export default function DocumentsTable() {
           },
         });
 
+        // Debug: Log the file response
+        console.log("File response status:", fileResponse.status);
+        console.log("File response headers:", fileResponse.headers);
+
         if (!fileResponse.ok) {
-          throw new Error("Failed to fetch the file");
+          // Try without authorization header if the first attempt fails
+          console.log("First attempt failed, trying without authorization...");
+          const fileResponseNoAuth = await fetch(data.data, {
+            method: "GET",
+            mode: "cors",
+          });
+
+          console.log(
+            "File response (no auth) status:",
+            fileResponseNoAuth.status
+          );
+
+          if (!fileResponseNoAuth.ok) {
+            throw new Error(
+              `Failed to fetch the file. Status: ${fileResponseNoAuth.status}`
+            );
+          }
+
+          const blob = await fileResponseNoAuth.blob();
+          return processBlobDownload(blob, docName);
         }
 
         const blob = await fileResponse.blob();
-
-        // Create a blob URL (this is temporary and not exposed to user)
-        const blobUrl = window.URL.createObjectURL(blob);
-
-        // Get filename with datetime
-        const filenameWithDateTime = getFilenameWithDateTime(docName);
-
-        // Create a temporary link element to trigger download
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = filenameWithDateTime;
-        link.style.display = "none";
-
-        // Append to body, click, and remove
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the blob URL after download
-        setTimeout(() => {
-          window.URL.revokeObjectURL(blobUrl);
-        }, 100);
-
-        showToast(`Downloaded ${filenameWithDateTime}`, "success");
-        return blob; // Return the blob for further processing if needed
+        return processBlobDownload(blob, docName);
       } else {
         throw new Error(data.message || "Failed to get download URL");
       }
@@ -492,6 +647,152 @@ export default function DocumentsTable() {
       console.error("Error downloading document:", error);
       showToast(`Failed to download: ${error.message}`, "error");
       return null;
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // ✅ UPDATED: Function to preview document with better error handling
+  const previewDocument = async (docPath, docName) => {
+    if (!docPath) {
+      showToast("Document not available", "warning");
+      return;
+    }
+
+    setPreviewLoading(true);
+    setIsPreviewModalOpen(true);
+    // ✅ FIXED: Store the original path along with other info
+    setPreviewDoc({
+      name: docName,
+      url: null,
+      type: null,
+      originalPath: docPath, // Store the original path for download
+    });
+    setPreviewContent(null);
+
+    try {
+      console.log("Previewing document:", docPath, docName);
+
+      // Get the file URL from API
+      const fileUrl = await getFileUrl(docPath);
+      console.log("File URL for preview:", fileUrl);
+
+      // Get file extension to determine type
+      const extension = docName.split(".").pop().toLowerCase();
+      let type = "unknown";
+
+      switch (extension) {
+        case "pdf":
+          type = "pdf";
+          break;
+        case "doc":
+        case "docx":
+          type = "word";
+          break;
+        case "xls":
+        case "xlsx":
+          type = "excel";
+          break;
+        case "txt":
+        case "csv":
+        case "json":
+        case "xml":
+        case "html":
+        case "css":
+        case "js":
+        case "md":
+          type = "text";
+          break;
+        case "jpg":
+        case "jpeg":
+        case "png":
+        case "gif":
+        case "bmp":
+        case "webp":
+          type = "image";
+          break;
+        default:
+          type = "unknown";
+      }
+
+      let content = null;
+
+      // For images, create an img element
+      if (type === "image") {
+        content = {
+          type: "image",
+          url: fileUrl,
+        };
+      }
+      // For PDFs, create an iframe
+      else if (type === "pdf") {
+        content = {
+          type: "pdf",
+          url: fileUrl,
+        };
+      }
+      // For text files, fetch and display content
+      else if (type === "text") {
+        try {
+          const response = await fetch(fileUrl, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            // Try without authorization
+            const responseNoAuth = await fetch(fileUrl);
+            if (!responseNoAuth.ok) {
+              throw new Error("Failed to fetch text content");
+            }
+            const text = await responseNoAuth.text();
+            content = {
+              type: "text",
+              content: text,
+            };
+          } else {
+            const text = await response.text();
+            content = {
+              type: "text",
+              content: text,
+            };
+          }
+        } catch (error) {
+          console.error("Error fetching text content:", error);
+          content = {
+            type: "error",
+            message: "Failed to load text content",
+          };
+        }
+      }
+      // For other files, just show file info
+      else {
+        content = {
+          type: "file",
+          url: fileUrl,
+          fileName: docName,
+        };
+      }
+
+      // ✅ FIXED: Update previewDoc with the URL and keep the original path
+      setPreviewDoc({
+        name: docName,
+        url: fileUrl,
+        type: type,
+        originalPath: docPath, // Keep the original path for download
+      });
+
+      setPreviewContent(content);
+    } catch (error) {
+      console.error("Error previewing document:", error);
+      showToast(`Failed to preview: ${error.message}`, "error");
+      setPreviewContent({
+        type: "error",
+        message: `Failed to load preview: ${error.message}`,
+      });
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -1251,10 +1552,110 @@ export default function DocumentsTable() {
     return filtered;
   };
 
+  // ✅ NEW: Function to render the preview modal
+  const renderPreviewModal = () => {
+    if (!isPreviewModalOpen) return null;
+
+    return (
+      <div
+        className="attachment-preview-modal"
+        onClick={() => setIsPreviewModalOpen(false)}
+      >
+        <div className="preview-container" onClick={(e) => e.stopPropagation()}>
+          <div className="preview-header">
+            <h3>{previewDoc?.name}</h3>
+            <button
+              className="close-btn"
+              onClick={() => setIsPreviewModalOpen(false)}
+            >
+              <FaTimes />
+            </button>
+          </div>
+
+          <div className="preview-content">
+            {previewLoading ? (
+              <div className="preview-loading">
+                <FaSpinner className="spinner" />
+                <p>Loading document preview...</p>
+              </div>
+            ) : (
+              <>
+                {previewContent && previewContent.type === "image" && (
+                  <img
+                    src={previewContent.url}
+                    alt="Preview"
+                    className="preview-image"
+                  />
+                )}
+
+                {previewContent && previewContent.type === "pdf" && (
+                  <iframe
+                    src={`${previewContent.url}#view=FitH`}
+                    className="preview-pdf"
+                    title="PDF Preview"
+                  />
+                )}
+
+                {previewContent && previewContent.type === "text" && (
+                  <pre className="preview-text">{previewContent.content}</pre>
+                )}
+
+                {previewContent && previewContent.type === "file" && (
+                  <div className="preview-file-info">
+                    <div className="file-icon-large">
+                      {getFileIcon(previewDoc?.name)}
+                    </div>
+                    <p>Preview not available for this file type.</p>
+                    <p>Click the download button to view this file.</p>
+                  </div>
+                )}
+
+                {previewContent && previewContent.type === "error" && (
+                  <div className="preview-error">
+                    <p>{previewContent.message}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="preview-footer">
+            <button
+              className="btn-cancel"
+              onClick={() => setIsPreviewModalOpen(false)}
+            >
+              Close
+            </button>
+            {previewDoc?.originalPath && (
+              <button
+                className="btn-download"
+                onClick={() =>
+                  downloadDocument(previewDoc.originalPath, previewDoc.name)
+                }
+                disabled={isDownloading}
+              >
+                {isDownloading ? (
+                  <>
+                    <FaSpinner className="spinner" /> Downloading...
+                  </>
+                ) : (
+                  <>
+                    <FaDownload /> Download
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="doccat-container">
-      <div className="doccat-header">
-        <h2 className="doccat-title">📄 Documents</h2>
+      {/* ✅ UPDATED: Header with title and button side-by-side */}
+      <div className="doccat-header-with-title">
+        <h2 className="doccat-title">{title}</h2>
         {Number(roleid) === 1 && (
           <button className="btn-add-category" onClick={openAddModal}>
             + Add Document
@@ -1275,40 +1676,70 @@ export default function DocumentsTable() {
                   className="sortable-header"
                   onClick={() => requestSort("doccatname")}
                 >
-                  Category {getSortIcon("doccatname")}
+                  <div className="header-content">
+                    <span>Category</span>
+                    <span className="sort-icon-container">
+                      {getSortIcon("doccatname")}
+                    </span>
+                  </div>
                 </th>
                 <th
                   className="sortable-header"
                   onClick={() => requestSort("docsubcatname")}
                 >
-                  Subcategory {getSortIcon("docsubcatname")}
+                  <div className="header-content">
+                    <span>Subcategory</span>
+                    <span className="sort-icon-container">
+                      {getSortIcon("docsubcatname")}
+                    </span>
+                  </div>
                 </th>
                 <th
                   className="sortable-header"
                   onClick={() => requestSort("documentname")}
                 >
-                  Name {getSortIcon("documentname")}
+                  <div className="header-content">
+                    <span>Name</span>
+                    <span className="sort-icon-container">
+                      {getSortIcon("documentname")}
+                    </span>
+                  </div>
                 </th>
                 <th
                   className="sortable-header"
                   onClick={() => requestSort("documentdescription")}
                 >
-                  Description {getSortIcon("documentdescription")}
+                  <div className="header-content">
+                    <span>Description</span>
+                    <span className="sort-icon-container">
+                      {getSortIcon("documentdescription")}
+                    </span>
+                  </div>
                 </th>
                 <th
                   className="sortable-header"
                   onClick={() => requestSort("docperiodicityname")}
                 >
-                  Periodicity {getSortIcon("docperiodicityname")}
+                  <div className="header-content">
+                    <span>Periodicity</span>
+                    <span className="sort-icon-container">
+                      {getSortIcon("docperiodicityname")}
+                    </span>
+                  </div>
                 </th>
                 <th
                   className="sortable-header"
                   onClick={() => requestSort("documentremarks")}
                 >
-                  Remarks {getSortIcon("documentremarks")}
+                  <div className="header-content">
+                    <span>Remarks</span>
+                    <span className="sort-icon-container">
+                      {getSortIcon("documentremarks")}
+                    </span>
+                  </div>
                 </th>
-                <th>Sample Doc</th>
-                <th>Template Doc</th>
+                <th>Sample Document</th>
+                <th>Template Document</th>
                 {/* Hide these columns if roleid is 4 */}
                 {Number(roleid) !== 4 && (
                   <>
@@ -1316,25 +1747,45 @@ export default function DocumentsTable() {
                       className="sortable-header"
                       onClick={() => requestSort("documentcreatedby")}
                     >
-                      Created By {getSortIcon("documentcreatedby")}
+                      <div className="header-content">
+                        <span>Created By</span>
+                        <span className="sort-icon-container">
+                          {getSortIcon("documentcreatedby")}
+                        </span>
+                      </div>
                     </th>
                     <th
                       className="sortable-header"
                       onClick={() => requestSort("documentcreatedtime")}
                     >
-                      Created Time {getSortIcon("documentcreatedtime")}
+                      <div className="header-content">
+                        <span>Created Time</span>
+                        <span className="sort-icon-container">
+                          {getSortIcon("documentcreatedtime")}
+                        </span>
+                      </div>
                     </th>
                     <th
                       className="sortable-header"
                       onClick={() => requestSort("documentmodifiedby")}
                     >
-                      Modified By {getSortIcon("documentmodifiedby")}
+                      <div className="header-content">
+                        <span>Modified By</span>
+                        <span className="sort-icon-container">
+                          {getSortIcon("documentmodifiedby")}
+                        </span>
+                      </div>
                     </th>
                     <th
                       className="sortable-header"
                       onClick={() => requestSort("documentmodifiedtime")}
                     >
-                      Modified Time {getSortIcon("documentmodifiedtime")}
+                      <div className="header-content">
+                        <span>Modified Time</span>
+                        <span className="sort-icon-container">
+                          {getSortIcon("documentmodifiedtime")}
+                        </span>
+                      </div>
                     </th>
                     <th>Actions</th>
                   </>
@@ -1365,52 +1816,70 @@ export default function DocumentsTable() {
                     </td>
                     <td className="doc-file-cell">
                       {doc.documentsampledocname ? (
-                        <button
-                          className="doc-download-btn"
+                        <div
+                          className="message-attachment file-attachment whatsapp-style"
                           onClick={() =>
-                            downloadDocument(
+                            previewDocument(
                               doc.documentsampledoc,
                               doc.documentsampledocname
                             )
                           }
-                          title={`Download ${doc.documentsampledocname}`}
+                          title={`Click to preview ${doc.documentsampledocname}`}
                         >
-                          {getFileIcon(doc.documentsampledocname)}
-                          <span className="doc-filename">
-                            {doc.documentsampledocname.length > 15
-                              ? `${doc.documentsampledocname.substring(
-                                  0,
-                                  15
-                                )}...`
-                              : doc.documentsampledocname}
-                          </span>
-                        </button>
+                          <div className="file-icon-container">
+                            <div className="file-icon">
+                              {getFileIcon(doc.documentsampledocname)}
+                            </div>
+                          </div>
+                          <div className="file-info">
+                            <div className="file-name">
+                              {doc.documentsampledocname.length > 20
+                                ? `${doc.documentsampledocname.substring(
+                                    0,
+                                    20
+                                  )}...`
+                                : doc.documentsampledocname}
+                            </div>
+                            <div className="file-type">
+                              {getFileTypeText(doc.documentsampledocname)}
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <span className="no-data">-</span>
                       )}
                     </td>
                     <td className="doc-file-cell">
                       {doc.documenttemplatedocname ? (
-                        <button
-                          className="doc-download-btn"
+                        <div
+                          className="message-attachment file-attachment whatsapp-style"
                           onClick={() =>
-                            downloadDocument(
+                            previewDocument(
                               doc.documenttemplatedoc,
                               doc.documenttemplatedocname
                             )
                           }
-                          title={`Download ${doc.documenttemplatedocname}`}
+                          title={`Click to preview ${doc.documenttemplatedocname}`}
                         >
-                          {getFileIcon(doc.documenttemplatedocname)}
-                          <span className="doc-filename">
-                            {doc.documenttemplatedocname.length > 15
-                              ? `${doc.documenttemplatedocname.substring(
-                                  0,
-                                  15
-                                )}...`
-                              : doc.documenttemplatedocname}
-                          </span>
-                        </button>
+                          <div className="file-icon-container">
+                            <div className="file-icon">
+                              {getFileIcon(doc.documenttemplatedocname)}
+                            </div>
+                          </div>
+                          <div className="file-info">
+                            <div className="file-name">
+                              {doc.documenttemplatedocname.length > 20
+                                ? `${doc.documenttemplatedocname.substring(
+                                    0,
+                                    20
+                                  )}...`
+                                : doc.documenttemplatedocname}
+                            </div>
+                            <div className="file-type">
+                              {getFileTypeText(doc.documenttemplatedocname)}
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <span className="no-data">-</span>
                       )}
@@ -1472,7 +1941,7 @@ export default function DocumentsTable() {
 
       {isModalOpen && (
         <div className="doccat-modal-backdrop">
-          <div className="doccat-modal-content compact">
+          <div className="doccat-modal-content">
             <div className="doccat-modal-header">
               <h3>{editDoc ? "Edit Document" : "Add Document"}</h3>
               <button
@@ -1730,21 +2199,22 @@ export default function DocumentsTable() {
                             </span>
                             <button
                               type="button"
-                              className="download-existing-btn"
+                              className="preview-existing-btn"
                               onClick={() =>
-                                downloadDocument(
+                                previewDocument(
                                   editDoc.documentsampledoc,
                                   editDoc.documentsampledocname
                                 )
                               }
                             >
-                              Download
+                              <FaEye /> Preview
                             </button>
                           </div>
                         ) : (
                           <span className="no-data">No sample document</span>
                         )}
                       </div>
+                      <br />
                       <div className="existing-doc-item">
                         <label>Template Document</label>
                         {editDoc.documenttemplatedocname ? (
@@ -1755,15 +2225,15 @@ export default function DocumentsTable() {
                             </span>
                             <button
                               type="button"
-                              className="download-existing-btn"
+                              className="preview-existing-btn"
                               onClick={() =>
-                                downloadDocument(
+                                previewDocument(
                                   editDoc.documenttemplatedoc,
                                   editDoc.documenttemplatedocname
                                 )
                               }
                             >
-                              Download
+                              <FaEye /> Preview
                             </button>
                           </div>
                         ) : (
@@ -1808,6 +2278,9 @@ export default function DocumentsTable() {
         </div>
       )}
 
+      {/* ✅ NEW: Preview Modal adapted from Message component */}
+      {renderPreviewModal()}
+
       {/* Enhanced Toast notification */}
       {toast && (
         <div className={`toast-notification ${toast.type}`}>
@@ -1829,4 +2302,8 @@ export default function DocumentsTable() {
       )}
     </div>
   );
-}
+});
+
+DocumentsTable.displayName = "DocumentsTable";
+
+export default DocumentsTable;

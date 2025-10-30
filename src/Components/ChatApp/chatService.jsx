@@ -1,7 +1,8 @@
 // src/services/chatService.js
-const API_BASE_URL = "http://121.242.232.212:8086/itelinc";
+import { IPAdress } from "../Datafetching/IPAdrees";
+const API_BASE_URL = `${IPAdress}/itelinc`;
 
-export const getChatLists = async (userId) => {
+export const getChatLists = async (userId, incUserid) => {
   try {
     const response = await fetch(
       `${API_BASE_URL}/resources/generic/getchatlist`,
@@ -13,6 +14,7 @@ export const getChatLists = async (userId) => {
         },
         body: JSON.stringify({
           userId: parseInt(userId),
+          incUserId: parseInt(incUserid),
         }),
       }
     );
@@ -58,7 +60,7 @@ export const createChat = async (chatData) => {
   }
 };
 
-export const getChatDetails = async (userId, chatId) => {
+export const getChatDetails = async (userId, chatId, incUserid) => {
   try {
     const response = await fetch(
       `${API_BASE_URL}/resources/generic/getchatdetails`,
@@ -71,6 +73,7 @@ export const getChatDetails = async (userId, chatId) => {
         body: JSON.stringify({
           userId: parseInt(userId),
           chatId: parseInt(chatId),
+          incuserid: parseInt(incUserid),
         }),
       }
     );
@@ -127,7 +130,7 @@ export const sendMessage = async (messageData) => {
   }
 };
 
-export const getUsers = async (userId) => {
+export const getUsers = async (userId, incUserid) => {
   try {
     const response = await fetch(`${API_BASE_URL}/resources/generic/getusers`, {
       method: "POST",
@@ -137,6 +140,7 @@ export const getUsers = async (userId) => {
       },
       body: JSON.stringify({
         userId: userId || null,
+        userIncId: parseInt(incUserid) || null,
       }),
     });
 
@@ -153,7 +157,7 @@ export const getUsers = async (userId) => {
   }
 };
 
-export const getChatTypes = async (userId) => {
+export const getChatTypes = async (userId, incUserid) => {
   try {
     const response = await fetch(
       `${API_BASE_URL}/resources/generic/getchattype`,
@@ -165,6 +169,7 @@ export const getChatTypes = async (userId) => {
         },
         body: JSON.stringify({
           userId: parseInt(userId),
+          incUserId: parseInt(incUserid),
         }),
       }
     );
@@ -185,7 +190,7 @@ export const getChatTypes = async (userId) => {
 };
 
 // UPDATED: Function to get chat history (all chat details) - uses userId parameter
-export const getChatHistory = async (userId) => {
+export const getChatHistory = async (userId, incuserid) => {
   try {
     const response = await fetch(
       `${API_BASE_URL}/resources/generic/getchatdetails`,
@@ -197,6 +202,7 @@ export const getChatHistory = async (userId) => {
         },
         body: JSON.stringify({
           userId: parseInt(userId),
+          incuserid: parseInt(incuserid),
           chatId: "ALL", // Get all chat details for the user
         }),
       }

@@ -13,11 +13,12 @@ import {
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "./UserAssociationTable.css";
-
+import { IPAdress } from "../Datafetching/IPAdrees";
 export default function UserAssociationTable() {
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
-  const IP = "http://121.242.232.212:8086";
+  const incUserid = sessionStorage.getItem("incUserid");
+  const IP = IPAdress;
 
   const [associations, setAssociations] = useState([]);
   const [incubatees, setIncubatees] = useState([]);
@@ -52,6 +53,7 @@ export default function UserAssociationTable() {
       },
       body: JSON.stringify({
         userId: userId || null,
+        incUserId: incUserid,
       }),
     })
       .then((res) => {
@@ -85,6 +87,7 @@ export default function UserAssociationTable() {
       },
       body: JSON.stringify({
         userId: userId || null,
+        incUserId: incUserid,
       }),
     })
       .then((res) => {
@@ -117,6 +120,7 @@ export default function UserAssociationTable() {
       },
       body: JSON.stringify({
         userId: userId || null,
+        userIncId: incUserid,
       }),
     })
       .then((res) => {

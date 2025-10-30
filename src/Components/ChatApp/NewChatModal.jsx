@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./NewChatModal.css";
 import { getUsers, createChat, getChatTypes } from "./chatService";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
   // Define role IDs as constants for clarity
@@ -52,39 +53,127 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
       setChatTypesLoading(true);
       setError("");
 
-      const data = await getChatTypes(currentUser.id);
-      setChatTypes(data);
+      console.log("Current user for chat types:", currentUser);
+      console.log(
+        "Token exists for chat types:",
+        !!sessionStorage.getItem("token")
+      );
 
-      // Set default chat type based on user role
-      if (data.length > 0) {
-        const userRoleId = parseInt(currentUser.roleid);
-        let defaultChatType = "";
+      const data = await getChatTypes(currentUser.id, currentUser.incUserid);
+      console.log("Chat types data from API:", data);
 
-        // If user is SUPERADMIN (roleid 1), use incubator to incubatee (type 1)
-        if (userRoleId === ROLE_IDS.SUPERADMIN) {
-          defaultChatType = "1"; // incubator to incubatee
-        }
-        // If user is ADMIN or ADMIN_OPERATOR (roleid 2 or 3), use incubator to incubatee (type 1)
-        else if (
-          userRoleId === ROLE_IDS.ADMIN ||
-          userRoleId === ROLE_IDS.ADMIN_OPERATOR
-        ) {
-          defaultChatType = "1"; // incubator to incubatee
-        }
-        // If user is INCUBATEE_ADMIN/MANAGER/OPERATOR (roleid 4, 5, or 6), use incubatee to incubator (type 2)
-        else if (
-          userRoleId === ROLE_IDS.INCUBATEE_ADMIN ||
-          userRoleId === ROLE_IDS.INCUBATEE_MANAGER ||
-          userRoleId === ROLE_IDS.INCUBATEE_OPERATOR
-        ) {
-          defaultChatType = "2"; // incubatee to incubator
-        }
+      // If API returns no data for SUPERADMIN, provide default chat types
+      if (
+        data.length === 0 &&
+        parseInt(currentUser.roleid) === ROLE_IDS.SUPERADMIN
+      ) {
+        console.log("No chat types from API, using defaults for SUPERADMIN");
+        const defaultChatTypes = [
+          {
+            value: 1,
+            text: "incubator to incubatee",
+            chattypedescription: "incubator to incubatee",
+          },
+          {
+            value: 3,
+            text: "broadcast without reply",
+            chattypedescription: "broadcast without reply",
+          },
+          {
+            value: 4,
+            text: "broadcast with reply public",
+            chattypedescription: "broadcast with reply public",
+          },
+          {
+            value: 5,
+            text: "broadcast with reply private",
+            chattypedescription: "broadcast with reply private",
+          },
+        ];
+        setChatTypes(defaultChatTypes);
+        setChatType("1"); // Set default to incubator to incubatee
+      } else {
+        setChatTypes(data);
 
-        setChatType(defaultChatType);
+        // Set default chat type based on user role
+        if (data.length > 0) {
+          const userRoleId = parseInt(currentUser.roleid);
+          let defaultChatType = "";
+
+          // If user is SUPERADMIN (roleid 1), use incubator to incubatee (type 1)
+          if (userRoleId === ROLE_IDS.SUPERADMIN) {
+            defaultChatType = "1"; // incubator to incubatee
+          }
+          // If user is ADMIN or ADMIN_OPERATOR (roleid 2 or 3), use incubator to incubatee (type 1)
+          else if (
+            userRoleId === ROLE_IDS.ADMIN ||
+            userRoleId === ROLE_IDS.ADMIN_OPERATOR
+          ) {
+            defaultChatType = "1"; // incubator to incubatee
+          }
+          // If user is INCUBATEE_ADMIN/MANAGER/OPERATOR (roleid 4, 5, or 6), use incubatee to incubator (type 2)
+          else if (
+            userRoleId === ROLE_IDS.INCUBATEE_ADMIN ||
+            userRoleId === ROLE_IDS.INCUBATEE_MANAGER ||
+            userRoleId === ROLE_IDS.INCUBATEE_OPERATOR
+          ) {
+            defaultChatType = "2"; // incubatee to incubator
+          }
+
+          setChatType(defaultChatType);
+        } else {
+          console.log(
+            "No chat types returned from API and user is not SUPERADMIN"
+          );
+          // Set a default chat type even if no data is returned
+          const userRoleId = parseInt(currentUser.roleid);
+          if (userRoleId === ROLE_IDS.SUPERADMIN) {
+            setChatType("1"); // incubator to incubatee
+          } else if (
+            userRoleId === ROLE_IDS.ADMIN ||
+            userRoleId === ROLE_IDS.ADMIN_OPERATOR
+          ) {
+            setChatType("1"); // incubator to incubatee
+          } else if (
+            userRoleId === ROLE_IDS.INCUBATEE_ADMIN ||
+            userRoleId === ROLE_IDS.INCUBATEE_MANAGER ||
+            userRoleId === ROLE_IDS.INCUBATEE_OPERATOR
+          ) {
+            setChatType("2"); // incubatee to incubator
+          }
+        }
       }
     } catch (error) {
       console.error("Error fetching chat types:", error);
       setError(`Failed to load chat types: ${error.message}`);
+
+      // Set default chat types on error for SUPERADMIN
+      if (parseInt(currentUser.roleid) === ROLE_IDS.SUPERADMIN) {
+        const defaultChatTypes = [
+          {
+            value: 1,
+            text: "incubator to incubatee",
+            chattypedescription: "incubator to incubatee",
+          },
+          {
+            value: 3,
+            text: "broadcast without reply",
+            chattypedescription: "broadcast without reply",
+          },
+          {
+            value: 4,
+            text: "broadcast with reply public",
+            chattypedescription: "broadcast with reply public",
+          },
+          {
+            value: 5,
+            text: "broadcast with reply private",
+            chattypedescription: "broadcast with reply private",
+          },
+        ];
+        setChatTypes(defaultChatTypes);
+        setChatType("1");
+      }
     } finally {
       setChatTypesLoading(false);
     }
@@ -95,7 +184,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
     try {
       const token = sessionStorage.getItem("token");
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/getuserasslist",
+        `${IPAdress}/itelinc/resources/generic/getuserasslist`,
         {
           method: "POST",
           headers: {
@@ -104,6 +193,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
           },
           body: JSON.stringify({
             userId: currentUser.id,
+            incUserId: currentUser.incUserid,
           }),
         }
       );
@@ -125,7 +215,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
     try {
       const token = sessionStorage.getItem("token");
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/generic/getspocs",
+        `${IPAdress}/itelinc/resources/generic/getspocs`,
         {
           method: "POST",
           headers: {
@@ -134,19 +224,20 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
           },
           body: JSON.stringify({
             userId: currentUser.id,
+            incUserId: currentUser.incUserid,
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("");
       }
-
       const data = await response.json();
       return data.data || [];
     } catch (error) {
       console.error("Error fetching SPOCs:", error);
-      throw error;
+      // MODIFICATION: Return empty array instead of throwing error to prevent breaking the flow
+      return [];
     }
   };
 
@@ -170,7 +261,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
         const currentUserIncubateeId = currentUser.incubateesrecid;
 
         // Fetch all users first
-        const allUsers = await getUsers(currentUser.id);
+        const allUsers = await getUsers(currentUser.id, currentUser.incUserid);
 
         // Create a map of user details for quick lookup
         const userMap = {};
@@ -178,21 +269,27 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
           userMap[user.usersrecid] = user;
         });
 
-        // Fetch SPOCs
-        const spocsData = await fetchSpocs();
-        setSpocs(spocsData);
+        // MODIFICATION: Fetch SPOCs with error handling
+        let spocsData = [];
+        try {
+          spocsData = await fetchSpocs();
+          setSpocs(spocsData);
+        } catch (error) {
+          console.error(
+            "Failed to fetch SPOCs, continuing without them:",
+            error
+          );
+          // Continue with empty spocsData
+        }
 
-        // Filter SPOCs to include only those associated with the same incubatee
-        const filteredSpocs = spocsData.filter((spoc) => {
+        // MODIFICATION: Get ALL SPOCs (not just those associated with the same incubatee)
+        const allSpocs = spocsData.filter((spoc) => {
           // Exclude the current user
-          if (spoc.usersrecid == currentUser.id) return false;
-
-          // Check if SPOC is associated with the same incubatee
-          return spoc.usersincubateesrecid === currentUserIncubateeId;
+          return spoc.usersrecid != currentUser.id;
         });
 
         // Combine SPOC data with user details
-        const combinedSpocs = filteredSpocs.map((spoc) => {
+        const combinedSpocs = allSpocs.map((spoc) => {
           const userDetails = userMap[spoc.usersrecid];
           return {
             ...spoc,
@@ -203,7 +300,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
           };
         });
 
-        // Get ALL users with role ID 1 (SUPERADMIN) from the users list (no incubatee filter)
+        // MODIFICATION: Get ALL users with role ID 1 (SUPERADMIN) from the users list (no incubatee filter)
         const superAdminUsers = allUsers
           .filter((user) => {
             // Exclude the current user
@@ -243,7 +340,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
           };
         });
 
-        // Combine all users: SPOCs, ALL SUPERADMIN users, and associated users
+        // Combine all users: ALL SPOCs, ALL SUPERADMIN users, and associated users
         const combinedUsers = [
           ...combinedSpocs,
           ...superAdminUsers,
@@ -256,7 +353,23 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
             index === self.findIndex((u) => u.usersrecid === user.usersrecid)
         );
 
-        setUsers(uniqueUsers);
+        // Sort users to prioritize SUPERADMIN and SPOC users at the top
+        const sortedUsers = uniqueUsers.sort((a, b) => {
+          // Priority order: SUPERADMIN, SPOC, others
+          const aPriority =
+            a.userType === "SUPERADMIN" ? 1 : a.userType === "SPOC" ? 2 : 3;
+          const bPriority =
+            b.userType === "SUPERADMIN" ? 1 : b.userType === "SPOC" ? 2 : 3;
+
+          if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+          }
+
+          // If same priority, sort by name
+          return a.usersname.localeCompare(b.usersname);
+        });
+
+        setUsers(sortedUsers);
       }
       // If user is admin operator, fetch user associations first
       else if (userRoleId === ROLE_IDS.ADMIN_OPERATOR) {
@@ -275,7 +388,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
         console.log("Admin operator incubatee IDs:", incubateeIds);
 
         // Fetch all users
-        const allUsers = await getUsers(currentUser.id);
+        const allUsers = await getUsers(currentUser.id, currentUser.incUserid);
 
         // Filter users to only include those associated with the same incubatees
         const filteredUsers = allUsers.filter((user) => {
@@ -304,7 +417,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
         console.log("Admin incubatee IDs:", incubateeIds);
 
         // Fetch all users
-        const allUsers = await getUsers(currentUser.id);
+        const allUsers = await getUsers(currentUser.id, currentUser.incUserid);
 
         // Filter users to only include those associated with the same incubatees
         const filteredUsers = allUsers.filter((user) => {
@@ -318,7 +431,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
         setUsers(filteredUsers);
       } else {
         // For other roles, use the existing logic
-        const data = await getUsers(currentUser.id);
+        const data = await getUsers(currentUser.id, currentUser.incUserid);
 
         // Filter users based on current user's role ID
         let filteredUsers = data.filter(
@@ -350,7 +463,8 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
       }
     } catch (error) {
       console.error("Error fetching users:", error);
-      setError(`Failed to load users: ${error.message}`);
+      // setError(`Failed to load users: ${error.message}`);
+      setError(`${error.message}`);
     } finally {
       setUsersLoading(false);
     }
@@ -534,13 +648,35 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
 
   // Filter chat types based on user role ID
   const getAvailableChatTypes = () => {
-    if (!currentUser || !chatTypes.length) return [];
+    if (!currentUser) {
+      console.log("No current user");
+      return [];
+    }
 
-    const userRoleId = parseInt(currentUser.roleid); // Ensure it's a number for comparison
+    const userRoleId = parseInt(currentUser.roleid);
+    console.log("User role ID:", userRoleId);
+    console.log("Chat types:", chatTypes);
 
     // If user is SUPERADMIN (roleid 1), show all chat types EXCEPT incubatee <-> incubator
     if (userRoleId === ROLE_IDS.SUPERADMIN) {
-      return chatTypes.filter((type) => type.value !== 2);
+      const filteredTypes = chatTypes.filter((type) => type.value !== 2);
+      console.log("Filtered chat types for SUPERADMIN:", filteredTypes);
+
+      // If no types are left after filtering, create a default one
+      if (filteredTypes.length === 0) {
+        console.log(
+          "No chat types available after filtering, creating default"
+        );
+        return [
+          {
+            value: 1,
+            text: "incubator to incubatee",
+            chattypedescription: "incubator to incubatee",
+          },
+        ];
+      }
+
+      return filteredTypes;
     }
 
     // If user is ADMIN or ADMIN_OPERATOR (roleid 2 or 3), show all chat types EXCEPT incubatee <-> incubator
@@ -548,7 +684,27 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
       userRoleId === ROLE_IDS.ADMIN ||
       userRoleId === ROLE_IDS.ADMIN_OPERATOR
     ) {
-      return chatTypes.filter((type) => type.value !== 2);
+      const filteredTypes = chatTypes.filter((type) => type.value !== 2);
+      console.log(
+        "Filtered chat types for ADMIN/ADMIN_OPERATOR:",
+        filteredTypes
+      );
+
+      // If no types are left after filtering, create a default one
+      if (filteredTypes.length === 0) {
+        console.log(
+          "No chat types available after filtering, creating default"
+        );
+        return [
+          {
+            value: 1,
+            text: "incubator to incubatee",
+            chattypedescription: "incubator to incubatee",
+          },
+        ];
+      }
+
+      return filteredTypes;
     }
 
     // If user is INCUBATEE_ADMIN/MANAGER/OPERATOR (roleid 4, 5, or 6), only show incubatee to incubator
@@ -557,7 +713,24 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
       userRoleId === ROLE_IDS.INCUBATEE_MANAGER ||
       userRoleId === ROLE_IDS.INCUBATEE_OPERATOR
     ) {
-      return chatTypes.filter((type) => type.value === 2);
+      const filteredTypes = chatTypes.filter((type) => type.value === 2);
+      console.log("Filtered chat types for INCUBATEE:", filteredTypes);
+
+      // If no types are left after filtering, create a default one
+      if (filteredTypes.length === 0) {
+        console.log(
+          "No chat types available after filtering, creating default"
+        );
+        return [
+          {
+            value: 2,
+            text: "incubatee to incubator",
+            chattypedescription: "incubatee to incubator",
+          },
+        ];
+      }
+
+      return filteredTypes;
     }
 
     // Default to empty array if role doesn't match
@@ -649,6 +822,13 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
     return user.userType;
   };
 
+  // MODIFICATION: Enhanced user display to highlight SUPERADMIN and SPOC users
+  const getUserDisplayClass = (user) => {
+    if (user.userType === "SUPERADMIN") return "superadmin-user";
+    if (user.userType === "SPOC") return "spoc-user";
+    return "";
+  };
+
   return (
     <div className="modal-overlay">
       <div className="modal-content">
@@ -738,7 +918,7 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
                           selectedUsers.includes(user.usersrecid.toString())
                             ? "selected"
                             : ""
-                        }`}
+                        } ${getUserDisplayClass(user)}`}
                         onClick={() =>
                           handleUserSelection(user.usersrecid.toString())
                         }

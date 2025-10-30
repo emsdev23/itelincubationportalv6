@@ -1,8 +1,9 @@
 import axios from "axios";
 import Swal from "sweetalert2";
+import { IPAdress } from "./IPAdrees";
 
 const api = axios.create({
-  baseURL: "http://121.242.232.212:8086/itelinc/resources",
+  baseURL: `${IPAdress}/itelinc/resources`,
 });
 
 // Request interceptor (attach token)

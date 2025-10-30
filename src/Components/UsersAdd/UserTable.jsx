@@ -11,11 +11,13 @@ import {
   FaSortDown,
 } from "react-icons/fa";
 import "./UserTable.css";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
 export default function UserTable() {
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
-  const IP = "http://121.242.232.212:8086";
+  const incUserid = sessionStorage.getItem("incUserid");
+  const IP = IPAdress;
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -167,6 +169,7 @@ export default function UserTable() {
       },
       body: JSON.stringify({
         userId: userId || null,
+        userIncId: incUserid,
       }),
     })
       .then((res) => res.json())
@@ -196,6 +199,7 @@ export default function UserTable() {
       },
       body: JSON.stringify({
         userId: userId || null,
+        incUserId: incUserid,
       }),
     })
       .then((res) => res.json())
@@ -230,6 +234,7 @@ export default function UserTable() {
       },
       body: JSON.stringify({
         userId: userId || null,
+        incUserId: incUserid,
       }),
     })
       .then((res) => res.json())
@@ -464,6 +469,7 @@ export default function UserTable() {
         params.append("usersadminstate", "1");
         params.append("userscreatedby", userId || "system");
         params.append("usersmodifiedby", userId || "system");
+        params.append("usersincubationsrecid", incUserid);
 
         // Only add incubateesrecid if it's not null or empty
         if (formData.usersincubateesrecid) {
@@ -697,6 +703,7 @@ export default function UserTable() {
         params.append("usersadminstate", "1");
         params.append("usersmodifiedby", userId);
         params.append("usersrecid", user.usersrecid);
+        params.append("usersincubationsrecid", incUserid);
 
         // Only add incubateesrecid if it's not null or empty
         if (formData.usersincubateesrecid) {

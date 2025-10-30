@@ -21,6 +21,7 @@ import { useContext } from "react";
 import { DataContext } from "../Components/Datafetching/DataProvider";
 import DDIDocumentUploadModal from "./DDI/DDIDocumentUploadModal ";
 import DDIDocumentsTable from "./DDI/DDIDocumentsTable";
+import { IPAdress } from "./Datafetching/IPAdrees";
 
 const Navbar = () => {
   const {
@@ -94,6 +95,7 @@ const Navbar = () => {
       });
 
       const userid = String(JSON.parse(sessionStorage.getItem("userid")));
+      const incUserId = String(JSON.parse(sessionStorage.getItem("incUserid")));
       const token = sessionStorage.getItem("token");
 
       if (!userid || !token) {
@@ -112,7 +114,7 @@ const Navbar = () => {
 
       // Step 3️⃣: Call logout API
       const response = await fetch(
-        "http://121.242.232.212:8086/itelinc/resources/auth/logout",
+        `${IPAdress}/itelinc/resources/auth/logout`,
         {
           method: "POST",
           headers: {
@@ -138,6 +140,7 @@ const Navbar = () => {
         sessionStorage.removeItem("userid");
         sessionStorage.removeItem("token");
         sessionStorage.removeItem("roleid");
+        sessionStorage.removeItem("incUserid");
 
         // Swal.fire({
         //   icon: "success",
