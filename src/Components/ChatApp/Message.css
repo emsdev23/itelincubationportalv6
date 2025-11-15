@@ -312,7 +312,8 @@
   gap: 10px;
 }
 
-.download-btn, .open-in-new-tab-btn {
+.download-btn,
+.open-in-new-tab-btn {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
@@ -322,7 +323,7 @@
 }
 
 .download-btn {
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
 }
 
@@ -343,4 +344,122 @@
 .message-attachment.file-attachment.whatsapp-style .preview-icon {
   font-size: 20px;
   margin-left: 10px;
+}
+
+/* Read status tick indicators */
+.read-status {
+  display: flex;
+  align-items: center;
+  margin-left: 5px;
+}
+
+.tick-single,
+.tick-double {
+  display: flex;
+  align-items: center;
+}
+
+.tick {
+  font-size: 14px;
+  margin-left: 2px;
+  color: #4fc3f7; /* Light blue color for ticks */
+}
+
+.tick-double .tick:first-child {
+  margin-left: 0;
+}
+
+.own-message .tick {
+  color: rgba(
+    255,
+    255,
+    255,
+    0.8
+  ); /* White with some transparency for own messages */
+}
+
+/* Adjust message footer layout to accommodate ticks */
+.message-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 5px;
+  padding: 0 5px;
+}
+
+.own-message .message-footer {
+  flex-direction: row-reverse;
+}
+
+.own-message .message-time {
+  margin-right: 5px;
+}
+
+/* src/components/Message.css */
+
+/* ... (keep all your existing CSS above this line) ... */
+
+/* --- Read Status Tick Indicators --- */
+.read-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px; /* Space between time and ticks */
+  font-size: 16px; /* Make ticks larger */
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Color for ticks in your own messages (blue background) */
+.own-message .read-status {
+  color: rgba(255, 255, 255, 0.9); /* White with high visibility */
+}
+
+/* Color for ticks in other people's messages (grey background) */
+.other-message .read-status {
+  color: #4fc3f7; /* A clear blue color */
+}
+
+/* Ensure message footer layout is correct */
+.message-footer {
+  display: flex;
+  justify-content: flex-end; /* Aligns items to the right */
+  align-items: center;
+  margin-top: 5px;
+  padding: 0 5px;
+}
+
+/* For your own messages, reverse the order so time is on the left */
+.own-message .message-footer {
+  flex-direction: row-reverse;
+}
+
+/* Ensure the reply button is on the far left for other messages */
+.other-message .message-footer {
+  justify-content: space-between;
+}
+
+/* Add these styles to your Message.css file */
+
+/* Base style for all tick indicators */
+.read-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  font-size: 16px;
+  color: #8e8e8e; /* Default gray color */
+}
+
+/* Style for a single tick (Sent) */
+.tick-single {
+  color: #8e8e8e;
+}
+
+/* Style for a double tick (Sent, but not read) */
+.tick-double {
+  color: #8e8e8e;
+}
+
+/* Override color for a double tick when it's read */
+.tick-blue {
+  color: #34b7f1; /* A common blue color for 'read' status */
 }

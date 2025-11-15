@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styles from "./Navbar.module.css";
 import {
   UserRound,
@@ -8,6 +8,8 @@ import {
   FolderDown,
   MessageSquare,
   FileBadge,
+  FileText,
+  MoreHorizontal,
 } from "lucide-react";
 import ITELLogo from "../assets/ITEL_Logo.png";
 import MetricCardDashboard from "./MetricCardDashboard";
@@ -17,13 +19,15 @@ import DocumentTable from "./DocumentTable";
 import { NavLink, useNavigate } from "react-router-dom";
 import CompanyTable from "./CompanyTable";
 import Swal from "sweetalert2";
+import AuditLogsModal from "./AuditLogsModal ";
+import api from "./Datafetching/api";
 
 import { useContext } from "react";
 import { DataContext } from "../Components/Datafetching/DataProvider";
 import DDIDocumentUploadModal from "./DDI/DDIDocumentUploadModal ";
 import DDIDocumentsTable from "./DDI/DDIDocumentsTable";
 import { IPAdress } from "./Datafetching/IPAdrees";
-import IncubatorSelectorTable from "./IncubatorSelectorTable"; // Import the new component
+import IncubatorSelectorTable from "./IncubatorSelectorTable";
 
 const Navbar = () => {
   const {
@@ -39,6 +43,12 @@ const Navbar = () => {
   } = useContext(DataContext);
   const navigate = useNavigate();
 
+  // Ref for actions container
+  const actionsRef = useRef(null);
+
+  // State for mobile menu
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   console.log(stats);
   console.log(byField);
   console.log(byStage);
@@ -47,6 +57,7 @@ const Navbar = () => {
   console.log(listOfIncubatees);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     founder: "",
@@ -102,7 +113,6 @@ const Navbar = () => {
       const incUserId = sessionStorage.getItem("incuserid"); // Don't parse this
       const token = sessionStorage.getItem("token");
 
-      console.log(selectedIncubation.incubationshortname);
       if (!userid || !token) {
         Swal.close();
         Swal.fire({
@@ -118,50 +128,45 @@ const Navbar = () => {
       });
 
       // Step 3️⃣: Call logout API
-      const response = await fetch(
-        `${IPAdress}/itelinc/resources/auth/logout`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            userid,
-            reason: `Manual Logout at ${currentTime}`,
-          }),
-        }
-      );
+      const response = await api.post("/auth/logout", {
+        userid,
+        reason: `Manual Logout at ${currentTime}`,
+      });
 
-      const data = await response.json();
+      const data = response.data.data || response.data;
       console.log("Logout response:", data);
 
       // Step 4️⃣: Handle response
       Swal.close();
 
-      if (response.ok) {
-        // Clear all context and session storage
-        clearAllData();
-        sessionStorage.removeItem("userid");
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("roleid");
-        sessionStorage.removeItem("incuserid");
+      // With axios, if we're here, request was successful
+      // No need to check response.ok
+      // Clear all context and session storage
+      clearAllData();
+      sessionStorage.removeItem("userid");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("roleid");
+      sessionStorage.removeItem("incuserid");
 
+      // Show success message
+      Swal.fire({
+        icon: "success",
+        title: "Logged Out",
+        text: "You have been successfully logged out.",
+        timer: 1500,
+        showConfirmButton: false,
+      }).then(() => {
         navigate("/", { replace: true });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Logout Failed",
-          text: data.message || "Something went wrong",
-        });
-      }
+      });
     } catch (error) {
       console.error("Logout error:", error);
       Swal.close();
       Swal.fire({
         icon: "error",
         title: "Logout Failed",
-        text: "Something went wrong while logging out.",
+        text:
+          error.response?.data?.message ||
+          "Something went wrong while logging out.",
       });
     }
   };
@@ -192,10 +197,10 @@ const Navbar = () => {
       : "Admin";
   console.log(logedinProfile);
 
-  // Function to get the logo URL
+  // Function to get logo URL
   const getLogoUrl = () => {
     if (selectedIncubation && selectedIncubation.incubationslogopath) {
-      // If the path starts with http, use it directly
+      // If path starts with http, use it directly
       if (selectedIncubation.incubationslogopath.startsWith("http")) {
         return selectedIncubation.incubationslogopath;
       }
@@ -207,6 +212,7 @@ const Navbar = () => {
   };
 
   useEffect(() => {}, []);
+
   return (
     <div className={styles.dashboard}>
       {/* Header */}
@@ -220,18 +226,30 @@ const Navbar = () => {
               alt="Incubator Logo"
             />
             <div>
-              <h1 className={styles.title}>
-                {/* {selectedIncubation
-                  ? `${selectedIncubation.incubationshortname} Portal`
-                  : "ITEL Incubation Portal"} */}
-                {selectedIncubation?.incubationshortname}
+              <h1 className={styles.title} style={{ whiteSpace: "pre" }}>
+                ITEL Incubation Portal
               </h1>
-              <p className={styles.subtitle}>Startup Management Dashboard</p>
+              <p className={styles.subtitle} style={{ whiteSpace: "pre" }}>
+                Startup Management Dashboard
+              </p>
             </div>
           </div>
 
+          {/* Mobile menu toggle */}
+          <button
+            className={styles.mobileMenuToggle}
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <MoreHorizontal size={24} />}
+          </button>
+
           {/* Right - Actions */}
-          <div className={styles.actions}>
+          <div
+            ref={actionsRef}
+            className={`${styles.actions} ${
+              isMobileMenuOpen ? styles.mobileMenuOpen : ""
+            }`}
+          >
             {/* Chat button now available for all users */}
             {Number(roleid) === 0 && (
               <NavLink
@@ -262,20 +280,26 @@ const Navbar = () => {
                 to="/Incubation/Dashboard/Usermanagement"
                 style={{ textDecoration: "none" }}
               >
-                <button className={styles.btnPrimary}>
+                <button
+                  className={styles.btnPrimary}
+                  style={{ whiteSpace: "pre" }}
+                >
                   <UserRound className={styles.icon} />
                   User Management
                 </button>
               </NavLink>
             )}
 
-            {/* Only show User Management button if roleid is not 3 */}
+            {/* Only show User Association button if roleid is not 3 */}
             {!isOperator && !isDueDeeligence && !SuperAdmin && (
               <NavLink
                 to="/Incubation/Dashboard/Userassociation"
                 style={{ textDecoration: "none" }}
               >
-                <button className={styles.btnPrimary}>
+                <button
+                  className={styles.btnPrimary}
+                  style={{ whiteSpace: "pre" }}
+                >
                   <UserRound className={styles.icon} />
                   User Association
                 </button>
@@ -288,12 +312,46 @@ const Navbar = () => {
                 to="/Incubation/Dashboard/AddDocuments"
                 style={{ textDecoration: "none" }}
               >
-                <button className={styles.btnPrimary}>
+                <button
+                  className={styles.btnPrimary}
+                  style={{ whiteSpace: "pre" }}
+                >
                   <FolderDown className={styles.icon} />
                   Document Management
                 </button>
               </NavLink>
             )}
+            {!isOperator && !isDueDeeligence && !SuperAdmin && (
+              <NavLink
+                to="/Incubation/Dashboard/Roles"
+                style={{ textDecoration: "none" }}
+              >
+                <button className={styles.btnPrimary}>
+                  <FolderDown className={styles.icon} />
+                  Roles Management
+                </button>
+              </NavLink>
+            )}
+            {!isOperator && !isDueDeeligence && !SuperAdmin && (
+              <NavLink
+                to="/Incubation/Dashboard/Applications"
+                style={{ textDecoration: "none" }}
+              >
+                <button className={styles.btnPrimary}>
+                  <FolderDown className={styles.icon} />
+                  Application Management
+                </button>
+              </NavLink>
+            )}
+
+            <button
+              className={styles.btnPrimary}
+              onClick={() => setIsLogsModalOpen(true)}
+              style={{ whiteSpace: "pre" }}
+            >
+              <FileText className={styles.icon} />
+              Audit Logs
+            </button>
 
             <button
               className={styles.btnPrimary}
@@ -350,208 +408,14 @@ const Navbar = () => {
         {roleid === "0" ? "" : <DDIDocumentsTable />}
       </main>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modalContent}>
-            {/* Modal Header */}
-            <div className={styles.modalHeader}>
-              <h2>Add New Company</h2>
-              <button
-                className={styles.closeButton}
-                onClick={() => setIsModalOpen(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Scrollable Form */}
-
-            <form onSubmit={handleSubmit} className={styles.form}>
-              <div className={styles.formGrid}>
-                <label>
-                  Company Name
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Founder
-                  <input
-                    type="text"
-                    name="founder"
-                    value={formData.founder}
-                    onChange={handleChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Date of Incorporation
-                  <input
-                    type="date"
-                    name="incorporationDate"
-                    value={formData.incorporationDate}
-                    onChange={handleChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Mobile
-                  <input
-                    type="tel"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Website
-                  <input
-                    type="url"
-                    name="website"
-                    value={formData.website}
-                    onChange={handleChange}
-                    required
-                  />
-                </label>
-
-                {/* Address Fields */}
-                <label>
-                  Address Line 1
-                  <input
-                    type="text"
-                    name="address1"
-                    value={formData.address1}
-                    onChange={handleChange}
-                    placeholder="House no., Street, etc."
-                  />
-                </label>
-
-                <label>
-                  Address Line 2
-                  <input
-                    type="text"
-                    name="address2"
-                    value={formData.address2}
-                    onChange={handleChange}
-                    placeholder="Apartment, landmark (optional)"
-                  />
-                </label>
-
-                <label>
-                  City
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                  />
-                </label>
-
-                <label>
-                  State / Province
-                  <input
-                    type="text"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                  />
-                </label>
-
-                <label>
-                  Country
-                  <select
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select your country</option>
-                    <option value="india">India</option>
-                    <option value="usa">United States</option>
-                    <option value="uk">United Kingdom</option>
-                    <option value="australia">Australia</option>
-                  </select>
-                </label>
-
-                <label>
-                  Pincode / Zip Code
-                  <input
-                    type="text"
-                    name="zipcode"
-                    value={formData.zipcode}
-                    onChange={handleChange}
-                  />
-                </label>
-
-                <label>
-                  Phone Number
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
-                </label>
-
-                {/* Example extra fields */}
-                <label>
-                  Industry
-                  <input
-                    type="text"
-                    name="industry"
-                    value={formData.industry}
-                    onChange={handleChange}
-                  />
-                </label>
-
-                <label>
-                  Number of Employees
-                  <input
-                    type="number"
-                    name="employees"
-                    value={formData.employees}
-                    onChange={handleChange}
-                  />
-                </label>
-              </div>
-
-              {/* Footer buttons */}
-              <div className={styles.formActions}>
-                <button
-                  type="button"
-                  className={styles.btnPrimary}
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className={styles.btnPrimary}>
-                  Save
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Audit Logs Modal */}
+      <AuditLogsModal
+        isOpen={isLogsModalOpen}
+        onClose={() => setIsLogsModalOpen(false)}
+        IPAddress={IPAdress}
+        token={token}
+        userid={userid}
+      />
     </div>
   );
 };

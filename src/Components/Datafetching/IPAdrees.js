@@ -1,1 +1,1 @@
-export const IPAdress = "http://121.242.232.212:8089";
+export const IPAdress = "http://121.242.232.213:8089";

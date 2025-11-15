@@ -248,7 +248,12 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
     fetch(url, {
       method: "GET",
       mode: "cors",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        userid: userId || "1",
+        "X-Module": "Document Management",
+        "X-Action": "fetch All Documents",
+      },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -538,6 +543,10 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+
+            userid: userId || "1",
+            "X-Module": "Document Management",
+            "X-Action": "Document Preview Fetch",
           },
           body: JSON.stringify({
             userid: userId || "39",
@@ -580,6 +589,10 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+
+            userid: userId || "1",
+            "X-Module": "Document Management",
+            "X-Action": "Document Preview Fetch",
           },
           body: JSON.stringify({
             userid: userId || "39",
@@ -751,16 +764,16 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
   // Define columns for DataGrid
   const columns = useMemo(
     () => [
-      {
-        field: "sno",
-        headerName: "S.No",
-        width: 70,
-        sortable: false,
-        valueGetter: (params) => {
-          if (!params || !params.api) return 0;
-          return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
-        },
-      },
+      // {
+      //   field: "sno",
+      //   headerName: "S.No",
+      //   width: 70,
+      //   sortable: false,
+      //   valueGetter: (params) => {
+      //     if (!params || !params.api) return 0;
+      //     return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
+      //   },
+      // },
       {
         field: "doccatname",
         headerName: "Category",
@@ -1174,6 +1187,10 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
         const requestBody = {
           documentsrecid: docId,
           documentmodifiedby: parseInt(userId) || 39,
+
+          userid: userId || "1",
+          "X-Module": "Document Management",
+          "X-Action": "Delete Document",
         };
 
         fetch(url, {
@@ -1226,16 +1243,16 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
       ? "Please wait while we update the document"
       : "Please wait while we save the document";
 
-    Swal.fire({
-      title: loadingTitle,
-      text: loadingText,
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
+    // Swal.fire({
+    //   title: loadingTitle,
+    //   text: loadingText,
+    //   allowOutsideClick: false,
+    //   allowEscapeKey: false,
+    //   showConfirmButton: false,
+    //   didOpen: () => {
+    //     Swal.showLoading();
+    //   },
+    // });
 
     try {
       let subcatId = formData.documentsubcatrecid;
@@ -1295,6 +1312,10 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+
+            userid: userId || "1",
+            "X-Module": "Document Management",
+            "X-Action": "Update Document",
           },
           body: JSON.stringify(requestBody),
         });
@@ -1350,6 +1371,10 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+
+            userid: userId || "1",
+            "X-Module": "Document Management",
+            "X-Action": "Add Document",
           },
           body: JSON.stringify(requestBody),
         });

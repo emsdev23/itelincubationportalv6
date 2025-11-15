@@ -353,60 +353,60 @@ export default function DocumentTable() {
           );
         },
       },
-      {
-        field: "actions",
-        headerName: "Actions",
-        width: 120,
-        sortable: false,
-        renderCell: (params) => {
-          if (!params || !params.row)
-            return (
-              <Button
-                variant="contained"
-                size="small"
-                disabled
-                sx={{
-                  backgroundColor: "#6b7280",
-                  color: "white",
-                  "&.Mui-disabled": {
-                    backgroundColor: "#6b7280",
-                    color: "white",
-                    opacity: 0.7,
-                  },
-                }}
-              >
-                No File
-              </Button>
-            );
+      // {
+      //   field: "actions",
+      //   headerName: "Actions",
+      //   width: 120,
+      //   sortable: false,
+      //   renderCell: (params) => {
+      //     if (!params || !params.row)
+      //       return (
+      //         <Button
+      //           variant="contained"
+      //           size="small"
+      //           disabled
+      //           sx={{
+      //             backgroundColor: "#6b7280",
+      //             color: "white",
+      //             "&.Mui-disabled": {
+      //               backgroundColor: "#6b7280",
+      //               color: "white",
+      //               opacity: 0.7,
+      //             },
+      //           }}
+      //         >
+      //           No File
+      //         </Button>
+      //       );
 
-          return params.row.filepath ? (
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => handleViewDocument(params.row.filepath)}
-            >
-              View Doc
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              size="small"
-              disabled
-              sx={{
-                backgroundColor: "#6b7280",
-                color: "white",
-                "&.Mui-disabled": {
-                  backgroundColor: "#6b7280",
-                  color: "white",
-                  opacity: 0.7,
-                },
-              }}
-            >
-              No File
-            </Button>
-          );
-        },
-      },
+      //     return params.row.filepath ? (
+      //       <Button
+      //         variant="contained"
+      //         size="small"
+      //         onClick={() => handleViewDocument(params.row.filepath)}
+      //       >
+      //         View Doc
+      //       </Button>
+      //     ) : (
+      //       <Button
+      //         variant="contained"
+      //         size="small"
+      //         disabled
+      //         sx={{
+      //           backgroundColor: "#6b7280",
+      //           color: "white",
+      //           "&.Mui-disabled": {
+      //             backgroundColor: "#6b7280",
+      //             color: "white",
+      //             opacity: 0.7,
+      //           },
+      //         }}
+      //       >
+      //         No File
+      //       </Button>
+      //     );
+      //   },
+      // },
     ],
     [roleid, handleViewDocument]
   );

@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import styles from "./ForgotPasswordModal.module.css";
 import Swal from "sweetalert2";
 import axios from "axios";
 import { IPAdress } from "../Datafetching/IPAdrees";
+import { DataContext } from "../Datafetching/DataProvider";
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => {
+  const { userid, incuserid } = useContext(DataContext);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,6 +39,9 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
         {
           headers: {
             "Content-Type": "application/json",
+            userid: userid || "1",
+            "X-Module": "Forgot Password",
+            "X-Action": "Forgot Password Request",
           },
           timeout: 10000, // 10 second timeout
         }

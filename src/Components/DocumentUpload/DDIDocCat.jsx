@@ -119,6 +119,9 @@ export default function DocCatTable() {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
+        userid: userId || "1",
+        "X-Module": " DDI Document Management",
+        "X-Action": "Fetch DDI Document Categories",
       },
       body: JSON.stringify({
         userId: parseInt(userId) || 1,
@@ -241,16 +244,16 @@ export default function DocCatTable() {
   // Define columns for DataGrid
   const columns = useMemo(
     () => [
-      {
-        field: "sno",
-        headerName: "S.No",
-        width: 70,
-        sortable: false,
-        valueGetter: (params) => {
-          if (!params || !params.api) return 0;
-          return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
-        },
-      },
+      // {
+      //   field: "sno",
+      //   headerName: "S.No",
+      //   width: 70,
+      //   sortable: false,
+      //   valueGetter: (params) => {
+      //     if (!params || !params.api) return 0;
+      //     return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
+      //   },
+      // },
       {
         field: "ddidoccatname",
         headerName: "Category Name",
@@ -415,6 +418,9 @@ export default function DocCatTable() {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
             Authorization: `Bearer ${token}`,
+            userid: userId || "1",
+            "X-Module": "DDI Document Management",
+            "X-Action": "Delete Category",
           },
         })
           .then((res) => res.json())
@@ -467,16 +473,16 @@ export default function DocCatTable() {
       ? "Please wait while we update the category"
       : "Please wait while we save the category";
 
-    Swal.fire({
-      title: loadingTitle,
-      text: loadingText,
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
+    // Swal.fire({
+    //   title: loadingTitle,
+    //   text: loadingText,
+    //   allowOutsideClick: false,
+    //   allowEscapeKey: false,
+    //   showConfirmButton: false,
+    //   didOpen: () => {
+    //     Swal.showLoading();
+    //   },
+    // });
 
     // Build URL parameters for the new API
     let url;
@@ -502,12 +508,19 @@ export default function DocCatTable() {
 
     console.log("API URL:", url); // Debug URL
 
+    // Determine module and action based on operation
+    const module = "DDI Document Management";
+    const action = editCat ? "Edit Category" : "Add Category";
+
     fetch(url, {
       method: "POST",
       mode: "cors",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         Authorization: `Bearer ${token}`,
+        userid: userId || "1",
+        "X-Module": module,
+        "X-Action": action,
       },
     })
       .then(async (res) => {

@@ -8,6 +8,7 @@ const DocumentUploadModal = ({
   usersrecid,
   onUploadSuccess,
   incuserid,
+  documentData,
 }) => {
   const [userId, setUserId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -26,12 +27,13 @@ const DocumentUploadModal = ({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
-  // Get file extension function
   const getFileExtension = (filename) => {
     const lastDotIndex = filename.lastIndexOf(".");
     if (lastDotIndex === -1 || lastDotIndex === 0) {
-      return ""; // No extension or hidden file without extension
+      return "";
     }
     return filename.substring(lastDotIndex + 1).toLowerCase();
   };
@@ -45,6 +47,7 @@ const DocumentUploadModal = ({
     }
   }, []);
 
+  // Reset form when modal closes
   useEffect(() => {
     if (!isModalOpen) {
       setSelectedCategory("");
@@ -54,164 +57,257 @@ const DocumentUploadModal = ({
       setSelectedDate("");
       setError("");
       setSuccess("");
+      setIsUpdating(false);
+      setInitialDataLoaded(false);
     }
   }, [isModalOpen]);
 
-  console.log(selectedCategory, selectedSubCategory, selectedDocInfo);
-  console.log(selectedFile, selectedDate);
+  // Fetch categories when modal opens
   useEffect(() => {
-    const fetchCategories = async () => {
-      if (!isModalOpen || !userId) return;
-
-      setLoading((prev) => ({ ...prev, categories: true }));
-      setError("");
-      try {
-        const token = sessionStorage.getItem("token");
-        const response = await fetch(
-          `${IPAdress}/itelinc/resources/generic/getdoccat`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ userId: userId, userIncId: incuserid }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (data.statusCode === 200) {
-          setCategories(data.data);
-        } else {
-          setError(
-            "Failed to fetch categories: " + (data.message || "Unknown error")
-          );
-        }
-      } catch (err) {
-        setError("Error fetching categories: " + err.message);
-        console.error("Categories fetch error:", err);
-      } finally {
-        setLoading((prev) => ({ ...prev, categories: false }));
-      }
-    };
-
     if (isModalOpen && userId) {
       fetchCategories();
     }
   }, [isModalOpen, userId]);
 
+  // Pre-fill form after categories are loaded and documentData is available
   useEffect(() => {
-    const fetchSubCategories = async () => {
-      if (!selectedCategory || !userId) return;
+    if (
+      documentData &&
+      isModalOpen &&
+      categories.length > 0 &&
+      !initialDataLoaded
+    ) {
+      console.log("Pre-filling form with:", documentData); // Debug log
 
-      setLoading((prev) => ({ ...prev, subCategories: true }));
-      setError("");
-      setSubCategories([]);
-      setSelectedSubCategory("");
-      setDocInfos([]);
-      setSelectedDocInfo("");
+      setIsUpdating(true);
 
-      try {
-        const token = sessionStorage.getItem("token");
-        const response = await fetch(
-          `${IPAdress}/itelinc/resources/generic/getdocsubcat`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              userid: userId,
-              userIncId: incuserid,
-              docid: selectedCategory,
-            }),
-          }
-        );
+      // Find the category that matches the document's category name
+      const matchingCategory = categories.find(
+        (cat) => cat.text === documentData.doccatname
+      );
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+      if (matchingCategory) {
+        setSelectedCategory(matchingCategory.value.toString());
+
+        // Set date if available
+        if (documentData.due_date) {
+          const date = new Date(documentData.due_date.replace("Z", ""));
+          const formattedDate = date.toISOString().split("T")[0];
+          setSelectedDate(formattedDate);
         }
-
-        const data = await response.json();
-        if (data.statusCode === 200) {
-          setSubCategories(data.data);
-        } else {
-          setError(
-            "Failed to fetch subcategories: " +
-              (data.message || "Unknown error")
-          );
-        }
-      } catch (err) {
-        setError("Error fetching subcategories: " + err.message);
-        console.error("Subcategories fetch error:", err);
-      } finally {
-        setLoading((prev) => ({ ...prev, subCategories: false }));
+      } else {
+        console.error("Category not found:", documentData.doccatname);
+        setError(`Category "${documentData.doccatname}" not found`);
       }
-    };
 
-    if (selectedCategory) {
+      setInitialDataLoaded(true);
+    }
+  }, [documentData, isModalOpen, categories, initialDataLoaded]);
+
+  // When category is set, fetch subcategories
+  useEffect(() => {
+    if (selectedCategory && userId) {
       fetchSubCategories();
     }
   }, [selectedCategory, userId]);
 
+  // Pre-fill subcategory after subcategories are loaded
   useEffect(() => {
-    const fetchDocInfo = async () => {
-      if (!selectedSubCategory || !userId) return;
+    if (
+      documentData &&
+      documentData.docsubcatname &&
+      subCategories.length > 0 &&
+      initialDataLoaded
+    ) {
+      // Find the subcategory that matches the document's subcategory name
+      const matchingSubCategory = subCategories.find(
+        (subCat) => subCat.text === documentData.docsubcatname
+      );
 
-      setLoading((prev) => ({ ...prev, docInfos: true }));
-      setError("");
-      setDocInfos([]);
-      setSelectedDocInfo("");
-
-      try {
-        const token = sessionStorage.getItem("token");
-        const response = await fetch(
-          `${IPAdress}/itelinc/resources/generic/getdocinfo`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              userid: userId,
-              userIncId: incuserid,
-              doccatid: parseInt(selectedCategory),
-              docsubcatid: parseInt(selectedSubCategory),
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (data.statusCode === 200) {
-          setDocInfos(data.data);
-        } else {
-          setError(
-            "Failed to fetch document info: " +
-              (data.message || "Unknown error")
-          );
-        }
-      } catch (err) {
-        setError("Error fetching document info: " + err.message);
-        console.error("Document info fetch error:", err);
-      } finally {
-        setLoading((prev) => ({ ...prev, docInfos: false }));
+      if (matchingSubCategory) {
+        setSelectedSubCategory(matchingSubCategory.value.toString());
+      } else {
+        console.error("Subcategory not found:", documentData.docsubcatname);
+        setError(`Subcategory "${documentData.docsubcatname}" not found`);
       }
-    };
+    }
+  }, [documentData, subCategories, initialDataLoaded]);
 
-    if (selectedSubCategory) {
+  // When subcategory is set, fetch doc info
+  useEffect(() => {
+    if (selectedSubCategory && userId) {
       fetchDocInfo();
     }
-  }, [selectedSubCategory, selectedCategory, userId]);
+  }, [selectedSubCategory, userId]);
+
+  // Pre-fill document info after docInfos are loaded
+  useEffect(() => {
+    if (
+      documentData &&
+      documentData.documentname &&
+      docInfos.length > 0 &&
+      initialDataLoaded
+    ) {
+      // Find the document info that matches the document's name
+      const matchingDocInfo = docInfos.find(
+        (docInfo) => docInfo.text === documentData.documentname
+      );
+
+      if (matchingDocInfo) {
+        setSelectedDocInfo(matchingDocInfo.value.toString());
+      } else {
+        console.error("Document info not found:", documentData.documentname);
+        setError(`Document "${documentData.documentname}" not found`);
+      }
+    }
+  }, [documentData, docInfos, initialDataLoaded]);
+
+  const fetchCategories = async () => {
+    setLoading((prev) => ({ ...prev, categories: true }));
+    setError("");
+    try {
+      const token = sessionStorage.getItem("token");
+      const response = await fetch(
+        `${IPAdress}/itelinc/resources/generic/getdoccat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            userid: userId || "1",
+            "X-Module": "Document Module",
+            "X-Action": "Fetching Document Categorie",
+          },
+          body: JSON.stringify({
+            userId: userId,
+            roleId: 0,
+            userIncId: incuserid || 1,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.statusCode === 200) {
+        setCategories(data.data);
+        console.log("Categories loaded:", data.data); // Debug log
+      } else {
+        setError(
+          "Failed to fetch categories: " + (data.message || "Unknown error")
+        );
+      }
+    } catch (err) {
+      setError("Error fetching categories: " + err.message);
+      console.error("Categories fetch error:", err);
+    } finally {
+      setLoading((prev) => ({ ...prev, categories: false }));
+    }
+  };
+
+  const fetchSubCategories = async () => {
+    if (!selectedCategory || !userId) return;
+
+    setLoading((prev) => ({ ...prev, subCategories: true }));
+    setError("");
+    setSubCategories([]);
+    setDocInfos([]);
+    setSelectedDocInfo("");
+
+    try {
+      const token = sessionStorage.getItem("token");
+      const response = await fetch(
+        `${IPAdress}/itelinc/resources/generic/getdocsubcat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            userid: userId || "1",
+            "X-Module": "Document Module",
+            "X-Action": "Fetching Document SubCategorie",
+          },
+          body: JSON.stringify({
+            userid: userId,
+            userIncId: incuserid || 1,
+            docid: selectedCategory,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.statusCode === 200) {
+        setSubCategories(data.data);
+        console.log("Subcategories loaded:", data.data); // Debug log
+      } else {
+        setError(
+          "Failed to fetch subcategories: " + (data.message || "Unknown error")
+        );
+      }
+    } catch (err) {
+      setError("Error fetching subcategories: " + err.message);
+      console.error("Subcategories fetch error:", err);
+    } finally {
+      setLoading((prev) => ({ ...prev, subCategories: false }));
+    }
+  };
+
+  const fetchDocInfo = async () => {
+    if (!selectedSubCategory || !userId) return;
+
+    setLoading((prev) => ({ ...prev, docInfos: true }));
+    setError("");
+    setDocInfos([]);
+    setSelectedDocInfo("");
+
+    try {
+      const token = sessionStorage.getItem("token");
+      const response = await fetch(
+        `${IPAdress}/itelinc/resources/generic/getdocinfo`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            userid: userId || "1",
+            "X-Module": "Document Module",
+            "X-Action": "Fetching Document Name",
+          },
+          body: JSON.stringify({
+            userid: userId,
+            userIncId: incuserid || 1,
+            doccatid: parseInt(selectedCategory),
+            docsubcatid: parseInt(selectedSubCategory),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.statusCode === 200) {
+        setDocInfos(data.data);
+        console.log("Doc infos loaded:", data.data); // Debug log
+      } else {
+        setError(
+          "Failed to fetch document info: " + (data.message || "Unknown error")
+        );
+      }
+    } catch (err) {
+      setError("Error fetching document info: " + err.message);
+      console.error("Document info fetch error:", err);
+    } finally {
+      setLoading((prev) => ({ ...prev, docInfos: false }));
+    }
+  };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -221,7 +317,6 @@ const DocumentUploadModal = ({
         return;
       }
 
-      // Optional: Validate file extensions
       const validExtensions = [
         "pdf",
         "png",
@@ -264,8 +359,6 @@ const DocumentUploadModal = ({
 
     try {
       const base64 = await convertToBase64(selectedFile);
-
-      // Extract file extension
       const fileExtension = getFileExtension(selectedFile.name);
 
       const docfordate = selectedDate
@@ -280,7 +373,7 @@ const DocumentUploadModal = ({
         docsubcatid: parseInt(selectedSubCategory),
         docid: parseInt(selectedDocInfo),
         docfordate: docfordate,
-        filetype: fileExtension, // ✅ added file type
+        filetype: fileExtension,
       };
 
       console.log("Upload data:", uploadData);
@@ -293,22 +386,22 @@ const DocumentUploadModal = ({
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: userId || "1",
+            "X-Module": "Add Document Module",
+            "X-Action": "Add Incubatee Document",
           },
           body: JSON.stringify(uploadData),
         }
       );
 
-      // Always parse JSON once
       const data = await response.json();
 
       if (!response.ok) {
-        // Use backend's message if available
         const errorMessage =
           data?.message || `HTTP error! status: ${response.status}`;
         throw new Error(errorMessage);
       }
 
-      // ✅ Success flow
       if (data.statusCode === 200) {
         setSuccess(data.message || "Document uploaded successfully!");
 
@@ -364,7 +457,6 @@ const DocumentUploadModal = ({
         return;
       }
 
-      // Validate file extension for drag & drop
       const validExtensions = [
         "pdf",
         "png",
@@ -396,7 +488,7 @@ const DocumentUploadModal = ({
     <div className="modal-backdrop">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>Upload Document</h3>
+          <h3>{isUpdating ? "Update Document" : "Upload Document"}</h3>
           <button className="close-button" onClick={handleClose}>
             ×
           </button>
@@ -551,7 +643,11 @@ const DocumentUploadModal = ({
             }
             onClick={handleUpload}
           >
-            {loading.uploading ? "Uploading..." : "Upload"}
+            {loading.uploading
+              ? "Uploading..."
+              : isUpdating
+              ? "Update"
+              : "Upload"}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Swal from "sweetalert2";
 import "./ChatList.css";
 import { IPAdress } from "../Datafetching/IPAdrees";
+import api from "../Datafetching/api";
 
 const ChatList = ({
   chatLists,
@@ -96,12 +97,7 @@ const ChatList = ({
 
     // 5. Make the API Call
     try {
-      const response = await fetch(`${IPAdress}/itelinc/resources/chat/close`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      const response = api.post(`${IPAdress}/itelinc/resources/chat/close`, {
         body: JSON.stringify(requestBody),
       });
 

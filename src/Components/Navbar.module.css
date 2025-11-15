@@ -15,14 +15,17 @@
   padding: 0 1rem;
   height: 4rem;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: center; /* Ensure vertical alignment */
+  justify-content: space-between; /* Distribute space between sections */
+  width: 100%;
 }
 
 .logoSection {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
+  min-width: 200px;
 }
 
 .logoIcon {
@@ -34,17 +37,69 @@
 .title {
   font-size: 1.25rem;
   font-weight: bold;
+  margin: 0; /* Remove default margin */
 }
 
 .subtitle {
   font-size: 0.875rem;
   color: var(--muted-foreground, #6b7280);
+  margin: 0; /* Remove default margin */
 }
 
 .actions {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: center; /* Ensure vertical alignment */
+  gap: 0.5rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  margin-left: 2rem; /* Increased gap between title and buttons */
+  margin-right: 1rem;
+  max-width: calc(100% - 240px); /* Adjusted for increased gap */
+  justify-content: flex-start;
+  min-width: 0;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Styled scrollbar for Webkit browsers (Chrome, Safari, Edge) */
+.actions::-webkit-scrollbar {
+  height: 8px; /* Height of horizontal scrollbar */
+  width: 8px; /* Width for vertical scrollbar if needed */
+}
+
+.actions::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+  margin: 0 10px; /* Add margin to track */
+}
+
+.actions::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  border: 1px solid #f1f1f1; /* Creates padding around thumb */
+  min-height: 20px; /* Minimum thumb height */
+}
+
+.actions::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Styled scrollbar for Firefox */
+.actions {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+/* Mobile menu toggle */
+.mobileMenuToggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--foreground, #111827);
+  margin-left: auto;
+  padding: 0.5rem;
 }
 
 /* Buttons */
@@ -81,6 +136,9 @@
   gap: 0.5rem;
   border: none;
   cursor: pointer;
+  flex-shrink: 0;
+  min-width: max-content;
+  white-space: nowrap;
 }
 
 .btnPrimary:hover {
@@ -91,10 +149,10 @@
 .icon {
   height: 1rem;
   width: 1rem;
+  flex-shrink: 0;
 }
 
 /* add startup */
-
 .modalBackdrop {
   position: fixed;
   inset: 0;
@@ -111,7 +169,7 @@
   border-radius: 0.75rem;
   width: 95%;
   max-width: 900px;
-  max-height: 90vh; /* prevent overflowing screen */
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
 }
@@ -136,14 +194,14 @@
 
 .form {
   flex: 1;
-  overflow-y: auto; /* scroll if content too long */
+  overflow-y: auto;
   padding-right: 0.5rem;
 }
 
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem 2rem; /* row gap & col gap */
+  gap: 1rem 2rem;
 }
 
 .form label {
@@ -270,25 +328,304 @@
   font-weight: 500;
 }
 
-/* Adjust header container to accommodate the new dropdown */
-.container {
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  padding: 0 20px;
+  padding: 20px;
+  border-bottom: 1px solid #eee;
 }
 
-/* Adjust logo section to accommodate the new dropdown */
-.logoSection {
-  display: flex;
-  align-items: center;
-  flex: 1;
+.modalHeader h2 {
+  margin: 0;
+  color: #333;
 }
 
-/* Adjust actions section to accommodate the new dropdown */
-.actions {
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
   display: flex;
   align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  color: #333;
+}
+
+.modalBody {
+  padding: 20px;
+}
+
+/* Logs filter styles */
+.logsFilter {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.filterOptions {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.filterBtn {
+  padding: 8px 16px;
+  margin-right: 10px;
+  background-color: #e9ecef;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterBtn:hover {
+  background-color: #dee2e6;
+}
+
+.activeFilter {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.dateRange {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.dateInput {
+  display: flex;
+  flex-direction: column;
+  margin-right: 15px;
+}
+
+.dateInput label {
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.dateInput input {
+  padding: 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.filterActions {
+  display: flex;
   gap: 10px;
+}
+
+.applyFilterBtn,
+.exportBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.applyFilterBtn {
+  background-color: #007bff;
+  color: white;
+}
+
+.applyFilterBtn:hover:not(:disabled) {
+  background-color: #0069d9;
+}
+
+.exportBtn {
+  background-color: #28a745;
+  color: white;
+}
+
+.exportBtn:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.applyFilterBtn:disabled,
+.exportBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Table styles */
+.logsTableContainer {
+  overflow-x: auto;
+}
+
+.logsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.logsTable th,
+.logsTable td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.logsTable th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.logsTable tr:hover {
+  background-color: #f8f9fa;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Loading and no data styles */
+.loadingContainer,
+.noDataContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #6c757d;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #007bff;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .actions {
+    max-width: calc(100% - 200px); /* Adjusted for increased gap */
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+
+  .logoSection {
+    min-width: 150px;
+  }
+
+  .mobileMenuToggle {
+    display: flex;
+  }
+
+  .actions {
+    position: fixed;
+    top: 4rem;
+    left: 0;
+    right: 0;
+    background-color: white;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    max-width: 100%;
+    height: auto;
+    max-height: 70vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    transform: translateY(-100%);
+    opacity: 0;
+    transition: all 0.3s ease;
+    margin-left: 0; /* Reset margin for mobile */
+  }
+
+  .actions.mobileMenuOpen {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .btnPrimary {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1rem;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+  }
+
+  .btnPrimary {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .icon {
+    height: 0.875rem;
+    width: 0.875rem;
+  }
 }

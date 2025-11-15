@@ -76,6 +76,9 @@ const DDIDocumentUploadModal = () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: userID || "1",
+            "X-Module": "DDI Documents",
+            "X-Action": "Fetching Incubatees List assigned to DDI",
           },
           body: JSON.stringify({ userId: userID, incUserId: incUserid }),
         }
@@ -129,6 +132,9 @@ const DDIDocumentUploadModal = () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: userID || "1",
+            "X-Module": "DDI Documents",
+            "X-Action": "Fetching DDI Document Types",
           },
           body: JSON.stringify({ userId: userID, incUserId: incUserid }),
         }
@@ -332,6 +338,9 @@ const DDIDocumentUploadModal = () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: companyDetails.usersrecid || "1",
+            "X-Module": "DDI Documents",
+            "X-Action": "Add DDI Document for Incubatee",
           },
           body: JSON.stringify(uploadData),
         }

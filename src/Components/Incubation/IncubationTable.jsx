@@ -6,12 +6,38 @@ import {
   FaPlus,
   FaSpinner,
   FaSearch,
-  FaSort,
-  FaSortUp,
-  FaSortDown,
+  FaFileCsv,
+  FaFileExcel,
 } from "react-icons/fa";
+import { DataGrid } from "@mui/x-data-grid";
+import Paper from "@mui/material/Paper";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import "./IncubationTable.css";
 import { IPAdress } from "../Datafetching/IPAdrees";
+import * as XLSX from "xlsx";
+import { Download } from "lucide-react";
+
+// Common date formatting function
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+
+  try {
+    const date = new Date(dateString);
+    // Format: YYYY-MM-DD HH:MM:SS
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return dateString; // Return original if formatting fails
+  }
+};
 
 export default function IncubationTable() {
   const userId = sessionStorage.getItem("userid");
@@ -23,10 +49,6 @@ export default function IncubationTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Sorting states
-  const [sortColumn, setSortColumn] = useState("sno");
-  const [sortDirection, setSortDirection] = useState("asc");
 
   // Loading states for operations
   const [isAdding, setIsAdding] = useState(false);
@@ -51,89 +73,216 @@ export default function IncubationTable() {
     }
   }, [searchQuery, incubations]);
 
-  // Function to handle sorting
-  const handleSort = (column) => {
-    // If clicking the same column, toggle direction
-    if (column === sortColumn) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      // If clicking a new column, set it and default to ascending
-      setSortColumn(column);
-      setSortDirection("asc");
-    }
+  // Define columns for DataGrid
+  const columns = [
+    {
+      field: "sno",
+      headerName: "S.No",
+      width: 70,
+      sortable: true,
+      sortComparator: (v1, v2) => v1 - v2,
+      renderCell: (params) =>
+        params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1,
+    },
+    {
+      field: "incubationsname",
+      headerName: "Name",
+      width: 200,
+      sortable: true,
+    },
+    {
+      field: "incubationshortname",
+      headerName: "Short Name",
+      width: 150,
+      sortable: true,
+    },
+    {
+      field: "incubationsemail",
+      headerName: "Email",
+      width: 200,
+      sortable: true,
+    },
+    {
+      field: "incubationswebsite",
+      headerName: "Website",
+      width: 200,
+      sortable: true,
+      renderCell: (params) => {
+        if (params.value) {
+          return (
+            <a
+              href={params.value}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "#1976d2", textDecoration: "none" }}
+            >
+              {params.value}
+            </a>
+          );
+        }
+        return "";
+      },
+    },
+
+    {
+      field: "incubationscreatedtime",
+      headerName: "Created Time",
+      width: 180,
+      sortable: true,
+      renderCell: (params) => {
+        // Safely access the row data
+        if (params.row && params.row.incubationscreatedtime) {
+          return formatDate(params.row.incubationscreatedtime);
+        }
+        return "";
+      },
+      sortComparator: (v1, v2, params1, params2) => {
+        // Safely access the row data for sorting
+        const date1 = params1.row?.incubationscreatedtime
+          ? new Date(params1.row.incubationscreatedtime)
+          : new Date(0);
+        const date2 = params2.row?.incubationscreatedtime
+          ? new Date(params2.row.incubationscreatedtime)
+          : new Date(0);
+        return date1 - date2;
+      },
+    },
+    {
+      field: "incubationsmodifiedtime",
+      headerName: "Modified Time",
+      width: 180,
+      sortable: true,
+      renderCell: (params) => {
+        // Safely access the row data
+        if (params.row && params.row.incubationsmodifiedtime) {
+          return formatDate(params.row.incubationsmodifiedtime);
+        }
+        return "";
+      },
+      sortComparator: (v1, v2, params1, params2) => {
+        // Safely access the row data for sorting
+        const date1 = params1.row?.incubationsmodifiedtime
+          ? new Date(params1.row.incubationsmodifiedtime)
+          : new Date(0);
+        const date2 = params2.row?.incubationsmodifiedtime
+          ? new Date(params2.row.incubationsmodifiedtime)
+          : new Date(0);
+        return date1 - date2;
+      },
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 120,
+      sortable: false,
+      renderCell: (params) => (
+        <div>
+          <IconButton
+            color="primary"
+            onClick={() => handleEdit(params.row)}
+            disabled={
+              isUpdating === params.row.incubationsrecid ||
+              isDeleting === params.row.incubationsrecid
+            }
+          >
+            {isUpdating === params.row.incubationsrecid ? (
+              <FaSpinner className="spinner" size={18} />
+            ) : (
+              <FaEdit size={18} />
+            )}
+          </IconButton>
+          <IconButton
+            color="error"
+            onClick={() => handleDelete(params.row)}
+            disabled={
+              isDeleting === params.row.incubationsrecid ||
+              isUpdating === params.row.incubationsrecid
+            }
+          >
+            {isDeleting === params.row.incubationsrecid ? (
+              <FaSpinner className="spinner" size={18} />
+            ) : (
+              <FaTrash size={18} />
+            )}
+          </IconButton>
+        </div>
+      ),
+    },
+  ];
+
+  // Transform data for DataGrid
+  const rows = useMemo(() => {
+    return filteredIncubations.map((incubation, index) => ({
+      id: incubation.incubationsrecid,
+      sno: index + 1, // Add sno for sorting
+      ...incubation,
+    }));
+  }, [filteredIncubations]);
+
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = [
+      "S.No",
+      "Name",
+      "Short Name",
+      "Email",
+      "Website",
+      "Created Time",
+      "Modified Time",
+    ];
+
+    const csvData = rows.map((row, index) => [
+      index + 1,
+      row.incubationsname,
+      row.incubationshortname,
+      row.incubationsemail,
+      row.incubationswebsite,
+      formatDate(row.incubationscreatedtime),
+      formatDate(row.incubationsmodifiedtime),
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "incubations.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  // Sort the filtered incubations based on the current sort column and direction
-  const sortedIncubations = useMemo(() => {
-    if (!filteredIncubations.length) return [];
+  // Export to Excel
+  const exportToExcel = () => {
+    const headers = [
+      "S.No",
+      "Name",
+      "Short Name",
+      "Email",
+      "Website",
+      "Created Time",
+      "Modified Time",
+    ];
 
-    return [...filteredIncubations].sort((a, b) => {
-      let aValue, bValue;
+    const excelData = rows.map((row, index) => ({
+      "S.No": index + 1,
+      Name: row.incubationsname,
+      "Short Name": row.incubationshortname,
+      Email: row.incubationsemail,
+      Website: row.incubationswebsite,
+      "Created Time": formatDate(row.incubationscreatedtime),
+      "Modified Time": formatDate(row.incubationsmodifiedtime),
+    }));
 
-      // Get the values to compare based on the column
-      switch (sortColumn) {
-        case "sno":
-          aValue = filteredIncubations.indexOf(a);
-          bValue = filteredIncubations.indexOf(b);
-          break;
-        case "incubationsname":
-          aValue = a.incubationsname || "";
-          bValue = b.incubationsname || "";
-          break;
-        case "incubationshortname":
-          aValue = a.incubationshortname || "";
-          bValue = b.incubationshortname || "";
-          break;
-        case "incubationsemail":
-          aValue = a.incubationsemail || "";
-          bValue = b.incubationsemail || "";
-          break;
-        case "incubationswebsite":
-          aValue = a.incubationswebsite || "";
-          bValue = b.incubationswebsite || "";
-          break;
-        case "incubationscreatedtime":
-          aValue = a.incubationscreatedtime
-            ? new Date(a.incubationscreatedtime)
-            : new Date(0);
-          bValue = b.incubationscreatedtime
-            ? new Date(b.incubationscreatedtime)
-            : new Date(0);
-          break;
-        case "incubationsmodifiedtime":
-          aValue = a.incubationsmodifiedtime
-            ? new Date(a.incubationsmodifiedtime)
-            : new Date(0);
-          bValue = b.incubationsmodifiedtime
-            ? new Date(b.incubationsmodifiedtime)
-            : new Date(0);
-          break;
-        default:
-          return 0;
-      }
-
-      // Compare the values
-      if (typeof aValue === "string") {
-        return sortDirection === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      } else {
-        // For numbers and dates
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
-      }
-    });
-  }, [filteredIncubations, sortColumn, sortDirection]);
-
-  // Function to get the appropriate sort icon for a column
-  const getSortIcon = (column) => {
-    if (sortColumn !== column) {
-      return <FaSort className="sort-icon" />;
-    }
-    return sortDirection === "asc" ? (
-      <FaSortUp className="sort-icon active" />
-    ) : (
-      <FaSortDown className="sort-icon active" />
-    );
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Incubations");
+    XLSX.writeFile(workbook, "incubations.xlsx");
   };
 
   // ✅ Fetch all incubations
@@ -146,6 +295,9 @@ export default function IncubationTable() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        userid: userId || "1",
+        "X-Module": "Incubator List",
+        "X-Action": "Fetching all Incubators",
       },
       body: JSON.stringify({
         userId: userId || 1,
@@ -192,6 +344,9 @@ export default function IncubationTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/x-www-form-urlencoded",
+            userid: userId || "1",
+            "X-Module": "Incubator list",
+            "X-Action": "Deleting Incubator",
           },
         })
           .then((res) => res.json())
@@ -349,6 +504,9 @@ export default function IncubationTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            userid: userId || "1",
+            "X-Module": "Incubator list",
+            "X-Action": "Adding new Incubator",
           },
           body: JSON.stringify(requestBody),
         })
@@ -403,7 +561,7 @@ export default function IncubationTable() {
   // ✅ Edit incubation with popup form
   const handleEdit = (incubation) => {
     Swal.fire({
-      title: "Edit Incubation",
+      title: "Edit Incubator",
       html: `
         <div class="swal-form-container">
           <div class="swal-form-row">
@@ -541,6 +699,9 @@ export default function IncubationTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+            userid: userId || "1",
+            "X-Module": "Incubator list",
+            "X-Action": "Updating Incubator Details",
           },
           body: JSON.stringify(requestBody),
         })
@@ -615,145 +776,59 @@ export default function IncubationTable() {
               )}
             </div>
           </div>
-          <button
-            className="btn-add-user"
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<FaPlus />}
             onClick={handleAddIncubation}
             disabled={isAdding}
+            sx={{ mr: 1 }}
           >
-            {isAdding ? (
-              <>
-                <FaSpinner className="spinner" size={16} /> Adding...
-              </>
-            ) : (
-              <>
-                <FaPlus size={16} /> Add Incubation
-              </>
-            )}
-          </button>
+            {isAdding ? "Adding..." : "Add Incubation"}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Download size={16} />}
+            onClick={exportToCSV}
+            sx={{ mr: 1 }}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Download size={16} />}
+            onClick={exportToExcel}
+          >
+            Export Excel
+          </Button>
         </div>
       </div>
       {error && <div className="error-message">{error}</div>}
       {loading ? (
         <p className="doccat-empty">Loading incubations...</p>
       ) : (
-        <div className="doccat-table-wrapper">
-          <table className="doccat-table">
-            <thead>
-              <tr>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("sno")}
-                >
-                  S.No {getSortIcon("sno")}
-                </th>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("incubationsname")}
-                >
-                  Name {getSortIcon("incubationsname")}
-                </th>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("incubationshortname")}
-                >
-                  Short Name {getSortIcon("incubationshortname")}
-                </th>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("incubationsemail")}
-                >
-                  Email {getSortIcon("incubationsemail")}
-                </th>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("incubationswebsite")}
-                >
-                  Website {getSortIcon("incubationswebsite")}
-                </th>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("incubationscreatedtime")}
-                >
-                  Created Time {getSortIcon("incubationscreatedtime")}
-                </th>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("incubationsmodifiedtime")}
-                >
-                  Modified Time {getSortIcon("incubationsmodifiedtime")}
-                </th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedIncubations.length > 0 ? (
-                sortedIncubations.map((incubation, idx) => (
-                  <tr key={incubation.incubationsrecid || idx}>
-                    <td>{incubations.indexOf(incubation) + 1}</td>
-                    <td>{incubation.incubationsname}</td>
-                    <td>{incubation.incubationshortname}</td>
-                    <td>{incubation.incubationsemail}</td>
-                    <td>
-                      {incubation.incubationswebsite && (
-                        <a
-                          href={incubation.incubationswebsite}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {incubation.incubationswebsite}
-                        </a>
-                      )}
-                    </td>
-                    <td>
-                      {incubation.incubationscreatedtime?.replace("T", " ")}
-                    </td>
-                    <td>
-                      {incubation.incubationsmodifiedtime?.replace("T", " ")}
-                    </td>
-                    <td>
-                      <button
-                        className="btn-edit"
-                        onClick={() => handleEdit(incubation)}
-                        disabled={
-                          isUpdating === incubation.incubationsrecid ||
-                          isDeleting === incubation.incubationsrecid
-                        }
-                      >
-                        {isUpdating === incubation.incubationsrecid ? (
-                          <FaSpinner className="spinner" size={18} />
-                        ) : (
-                          <FaEdit size={18} />
-                        )}
-                      </button>
-                      <button
-                        className="btn-delete"
-                        onClick={() => handleDelete(incubation)}
-                        disabled={
-                          isDeleting === incubation.incubationsrecid ||
-                          isUpdating === incubation.incubationsrecid
-                        }
-                      >
-                        {isDeleting === incubation.incubationsrecid ? (
-                          <FaSpinner className="spinner" size={18} />
-                        ) : (
-                          <FaTrash size={18} />
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="8" className="doccat-empty">
-                    {searchQuery
-                      ? "No incubations found matching your search"
-                      : "No incubations found"}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Paper sx={{ width: "100%", mt: 2 }}>
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            pageSizeOptions={[5, 10, 25]}
+            initialState={{
+              pagination: {
+                paginationModel: { pageSize: 10, page: 0 },
+              },
+            }}
+            disableRowSelectionOnClick
+            sx={{
+              "& .MuiDataGrid-columnHeaders": {
+                backgroundColor: "#f5f5f5",
+                fontWeight: "bold",
+              },
+              "& .MuiDataGrid-cell": {
+                borderBottom: "1px solid #e0e0e0",
+              },
+            }}
+          />
+        </Paper>
       )}
 
       {/* Loading overlay for operations */}
@@ -763,10 +838,10 @@ export default function IncubationTable() {
             <FaSpinner className="spinner" size={40} />
             <p>
               {isAdding
-                ? "Adding incubation..."
+                ? "Adding incubator..."
                 : isUpdating !== null
-                ? "Updating incubation..."
-                : "Deleting incubation..."}
+                ? "Updating incubator..."
+                : "Deleting incubator..."}
             </p>
           </div>
         </div>

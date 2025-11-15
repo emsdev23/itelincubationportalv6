@@ -1,0 +1,723 @@
+/* Container */
+.doccat-container {
+  padding: 1.5rem;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+}
+
+/* Header (title + add button) */
+.doccat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.doccat-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937; /* gray-800 */
+}
+
+/* Add User Button */
+.btn-add-user {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background-color: #10b981; /* green-500 */
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-add-user:hover {
+  background-color: #059669; /* green-600 */
+}
+
+.btn-add-user:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Table wrapper */
+.doccat-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb; /* gray-200 */
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Table base */
+.doccat-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+/* Header */
+.doccat-table thead tr {
+  background: linear-gradient(to right, #eff6ff, #dbeafe); /* blue gradient */
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151; /* gray-700 */
+}
+
+.doccat-table th {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Rows */
+.doccat-table tbody tr {
+  font-size: 0.875rem;
+  color: #374151;
+  transition: background 0.2s ease-in-out;
+}
+
+.doccat-table tbody tr:nth-child(even) {
+  background: #f9fafb; /* gray-50 */
+}
+
+.doccat-table tbody tr:hover {
+  background: #eff6ff; /* blue-50 */
+}
+
+/* Cells */
+.doccat-table td {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.doccat-name {
+  font-weight: 500;
+  color: #1d4ed8; /* blue-700 */
+}
+
+/* Action buttons */
+.doccat-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-edit,
+.btn-delete {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.btn-edit {
+  background-color: #3b82f6; /* blue */
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: #2563eb;
+}
+
+.btn-delete {
+  background-color: #ef4444; /* red */
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #dc2626;
+}
+
+.btn-edit:disabled,
+.btn-delete:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Empty state */
+.doccat-empty {
+  text-align: center;
+  color: #6b7280; /* gray-500 */
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+/* Error message */
+.error-message {
+  background-color: #ffebee;
+  color: #d32f2f;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  border-left: 4px solid #d32f2f;
+}
+
+/* Loading spinner */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Loading state for buttons */
+.btn-add-user .spinner,
+.btn-edit .spinner,
+.btn-delete .spinner {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Modal backdrop */
+.doccat-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Modal content */
+.doccat-modal-content {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Modal header */
+.doccat-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.doccat-modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Close button */
+.btn-close {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-close:hover {
+  color: #111827;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Modal form */
+.doccat-form label {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.doccat-form input,
+.doccat-form textarea {
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.doccat-form input:focus,
+.doccat-form textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.doccat-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Modal form actions */
+.doccat-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.btn-cancel {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background-color: #6b7280; /* gray */
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+  background-color: #4b5563;
+}
+
+.btn-save {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background-color: #10b981; /* green */
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-save:hover {
+  background-color: #059669;
+}
+
+/* Loading overlay for the entire container */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  min-width: 200px;
+}
+
+.loading-spinner .spinner {
+  font-size: 32px;
+  color: #1976d2;
+  margin-bottom: 16px;
+}
+
+.loading-spinner p {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* Toast notification styles for operation feedback */
+.toast-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  z-index: 2000;
+  min-width: 300px;
+  animation: slideInRight 0.3s ease-out,
+    slideOutRight 0.3s ease-in 2.7s forwards;
+}
+
+.toast-notification.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-left: 4px solid #2e7d32;
+}
+
+.toast-notification.error {
+  background-color: #ffebee;
+  color: #c62828;
+  border-left: 4px solid #c62828;
+}
+
+.toast-notification.warning {
+  background-color: #fff8e1;
+  color: #ff8f00;
+  border-left: 4px solid #ff8f00;
+}
+
+.toast-icon {
+  margin-right: 12px;
+  font-size: 20px;
+}
+
+.toast-message {
+  flex: 1;
+  font-weight: 500;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Loading skeleton for content */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-row {
+  height: 64px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.skeleton-header {
+  height: 48px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .doccat-container {
+    padding: 1rem;
+  }
+
+  .doccat-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .doccat-table-wrapper {
+    border-radius: 0;
+  }
+
+  .doccat-table th,
+  .doccat-table td {
+    padding: 0.5rem;
+  }
+
+  .doccat-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    width: 100%;
+  }
+
+  .doccat-modal-content {
+    width: 95%;
+    padding: 1rem;
+  }
+
+  .toast-notification {
+    left: 10px;
+    right: 10px;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .doccat-table-wrapper {
+    overflow-x: scroll;
+  }
+
+  .doccat-table {
+    min-width: 600px;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.search-container {
+  position: relative;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: #6c757d;
+}
+
+.search-input {
+  padding: 8px 35px 8px 35px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 250px;
+  font-size: 14px;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.clear-search-btn:hover {
+  color: #333;
+}
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 20px;
+}
+
+.sortable-header:hover {
+  background-color: #f5f5f5;
+}
+
+.sort-icon {
+  margin-left: 5px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.sort-icon.active {
+  color: #007bff;
+}
+
+/* peginatio css */
+
+/* Pagination styles */
+.table-info {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+}
+
+.items-per-page-select {
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(.disabled) {
+  background-color: #f5f5f5;
+}
+
+.pagination-btn.active {
+  background-color: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+  padding: 0 8px;
+  color: #666;
+}
+/* Add these styles to prevent table collapse issues */
+.doccat-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  min-height: 400px; /* Prevent table collapse */
+}
+
+.doccat-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  table-layout: fixed; /* Fixed layout to prevent column shifts */
+}
+
+/* Ensure rows maintain proper height */
+.doccat-table tbody tr {
+  min-height: 50px;
+  transition: background-color 0.2s ease;
+}
+
+/* Prevent content from collapsing */
+.doccat-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  color: #333;
+  vertical-align: middle; /* Ensure vertical alignment */
+  word-wrap: break-word; /* Prevent long text from breaking layout */
+  max-width: 200px; /* Limit column width for long content */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Special handling for description column */
+.doccat-table td:nth-child(4) {
+  max-width: 300px; /* Wider for description */
+}
+
+/* Special handling for time columns */
+.doccat-table td:nth-child(5),
+.doccat-table td:nth-child(6) {
+  max-width: 150px; /* Narrower for timestamps */
+  font-size: 12px;
+}
+
+/* 
+  Styles to ensure the full path is visible.
+  These rules are more specific to override any conflicting styles.
+*/
+.doccat-table .path-cell {
+  /* Allow text to wrap to the next line */
+  white-space: normal;
+  
+  /* Break long strings (like URLs/paths) if they don't have spaces */
+  word-break: break-all; 
+  
+  /* Set a reasonable width for the column */
+  max-width: 400px; 
+  min-width: 250px;
+
+  /* Explicitly prevent ellipsis (...) truncation */
+  text-overflow: clip; 
+  
+  /* Optional: Add some vertical padding for better readability when wrapped */
+  padding: 8px 12px; 
+}
+
+/* Ensure the table wrapper allows horizontal scrolling if the content is too wide */
+.doccat-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* Make sure the table itself doesn't have a fixed layout that forces truncation */
+.doccat-table {
+  width: 100%;
+  table-layout: auto; /* 'auto' allows columns to size based on content */
+  border-collapse: collapse;
+}
+
+/* Keep your other existing styles from RolesTable.css here */

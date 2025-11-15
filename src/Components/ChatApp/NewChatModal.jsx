@@ -190,6 +190,9 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: currentUser.id,
+            "X-Module": "Chat Module",
+            "X-Action": "Fetching user associations for  operators",
           },
           body: JSON.stringify({
             userId: currentUser.id,
@@ -221,6 +224,9 @@ const NewChatModal = ({ onClose, onChatCreated, currentUser }) => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: currentUser.id,
+            "X-Module": "Chat Module",
+            "X-Action": "Fetching SPOCs for users",
           },
           body: JSON.stringify({
             userId: currentUser.id,

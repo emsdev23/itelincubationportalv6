@@ -77,6 +77,24 @@ const ChatApp = () => {
     [currentUser.id, currentUser.incUserid]
   );
 
+  // Function to handle message read status updates
+  const handleMessageRead = useCallback(
+    (messageId) => {
+      if (!selectedChat) return;
+
+      setMessages((prev) => ({
+        ...prev,
+        [selectedChat.chatlistrecid]: prev[selectedChat.chatlistrecid].map(
+          (msg) =>
+            msg.chatdetailsrecid === messageId
+              ? { ...msg, chatdetailsreadstatus: 1 }
+              : msg
+        ),
+      }));
+    },
+    [selectedChat]
+  );
+
   // Check for new messages
   const checkForNewMessages = useCallback(
     async (chatId) => {
@@ -140,7 +158,7 @@ const ChatApp = () => {
     fetchData();
   }, [fetchChatLists]);
 
-  // Set up auto-refresh for chat lists every 30 seconds
+  // Set up auto-refresh for chat lists every 3 seconds
   useEffect(() => {
     chatListIntervalRef.current = setInterval(() => {
       fetchChatLists();
@@ -203,7 +221,7 @@ const ChatApp = () => {
     navigate("/Incubation/Dashboard/ChatHistory");
   };
 
-  // Modified handleSendMessage to separate filename and base64 data
+  // *** CORRECTED handleSendMessage FUNCTION ***
   const handleSendMessage = async (messageContent, attachment, replyToId) => {
     try {
       let attachmentBase64 = null;
@@ -225,12 +243,36 @@ const ChatApp = () => {
         fileName = attachment.name;
       }
 
+      // Get the current user ID and chat list participants
+      const userId = currentUser.id;
+      const chatListFrom = selectedChat.chatlistfrom;
+      const chatListTo = selectedChat.chatlistto;
+
+      // Determine the sender and recipient based on the current user's role in the chat
+      let messageFrom, messageTo;
+
+      // *** IMPLEMENTING THE CORRECT LOGIC ***
+      if (userId == chatListFrom) {
+        // If current user is the 'from' participant in the chat list
+        messageFrom = userId; // They are the sender
+        messageTo = chatListTo; // The other person is the recipient
+      } else if (userId == chatListTo) {
+        // If current user is the 'to' participant in the chat list
+        messageFrom = userId; // They are the sender
+        messageTo = chatListFrom; // The other person is the recipient
+      } else {
+        // This shouldn't happen in a one-on-one chat, but handle it just in case
+        console.error("Current user is not a participant in this chat");
+        alert("Error: You are not a participant in this chat.");
+        return; // Stop sending the message
+      }
+
       const messageData = {
         chatdetailstypeid: selectedChat.chatlistchattypeid,
         chatdetailslistid: selectedChat.chatlistrecid,
-        chatdetailsfrom: currentUser.id,
+        chatdetailsfrom: messageFrom,
         incUserId: currentUser.incUserid,
-        chatdetailsto: selectedChat.chatlistto,
+        chatdetailsto: messageTo,
         chatdetailsmessage: messageContent,
         chatdetailsattachmentpath: attachmentBase64 || "",
         filename: fileName,
@@ -239,6 +281,8 @@ const ChatApp = () => {
       if (replyToId) {
         messageData.chatdetailsreplyfor = replyToId;
       }
+
+      console.log("Sending message with data:", messageData); // For debugging
 
       const newMessage = await sendMessage(messageData);
 
@@ -267,6 +311,7 @@ const ChatApp = () => {
         )
       );
 
+      // Optional: Refetch messages after a short delay to ensure the latest state
       setTimeout(() => {
         fetchMessages(selectedChat.chatlistrecid);
       }, 1000);
@@ -287,7 +332,7 @@ const ChatApp = () => {
     const roleId = Number(currentUser.roleid);
     const id = Number(currentUser.id);
 
-    if (roleId === 1 || roleId == 2 || roleId == 3) {
+    if (roleId === 1 || roleId == 2 || roleId === 3) {
       navigate("/Incubation/Dashboard");
     } else if (roleId === 4 || roleId === 5 || roleId === 6) {
       if (id) {
@@ -356,6 +401,7 @@ const ChatApp = () => {
               currentUser={currentUser}
               fileInputRef={fileInputRef}
               chatLists={chatLists}
+              onMessageRead={handleMessageRead} // Pass the handleMessageRead function
             />
           ) : (
             <div className="no-chat-selected">

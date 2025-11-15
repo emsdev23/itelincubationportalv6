@@ -10,10 +10,50 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
+  FaFileExcel,
+  FaFileCsv,
+  FaFilter,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "./UserAssociationTable.css";
 import { IPAdress } from "../Datafetching/IPAdrees";
+
+// Material-UI imports
+import {
+  Button,
+  Box,
+  Typography,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Checkbox,
+  FormControlLabel,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Paper,
+  Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Popover,
+  Card,
+  CardContent,
+  CardActions,
+} from "@mui/material";
+
+// Export functionality imports
+import { CSVLink } from "react-csv";
+import * as XLSX from "xlsx";
 
 export default function DDIAssociationTable() {
   const userId = sessionStorage.getItem("userid");
@@ -21,6 +61,7 @@ export default function DDIAssociationTable() {
   const incUserid = sessionStorage.getItem("incuserid");
   const IP = IPAdress;
 
+  // Existing states
   const [associations, setAssociations] = useState([]);
   const [incubatees, setIncubatees] = useState([]);
   const [users, setUsers] = useState([]);
@@ -29,18 +70,30 @@ export default function DDIAssociationTable() {
   const [editingUserId, setEditingUserId] = useState(null);
   const [selectedIncubatees, setSelectedIncubatees] = useState([]);
   const [updateLoading, setUpdateLoading] = useState(false);
-  const [showNewAssociationModal, setShowNewAssociationModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedIncubateesForNew, setSelectedIncubateesForNew] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(""); // New state for search
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [columnFilters, setColumnFilters] = useState({
+    usersname: "",
+    userscreatedby: "",
+    incubateesname: "",
+    usrincassncreatedbyname: "",
+  });
 
-  // Sorting states
-  const [sortColumn, setSortColumn] = useState("usersname");
-  const [sortDirection, setSortDirection] = useState("asc");
+  // Filter popover states
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  const [filterColumn, setFilterColumn] = useState(null);
 
-  // Fetch user associations
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  // Fetch functions
   const fetchAssociations = () => {
     setLoading(true);
     setError(null);
@@ -51,6 +104,10 @@ export default function DDIAssociationTable() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+
+        userid: userId || "1",
+        "X-Module": "DDI User Association",
+        "X-Action": "Fetching DDI User Association Details",
       },
       body: JSON.stringify({
         userId: userId || null,
@@ -77,7 +134,6 @@ export default function DDIAssociationTable() {
       .finally(() => setLoading(false));
   };
 
-  // Fetch incubatees list
   const fetchIncubatees = () => {
     fetch(`${IP}/itelinc/resources/generic/getinclist`, {
       method: "POST",
@@ -110,7 +166,6 @@ export default function DDIAssociationTable() {
       });
   };
 
-  // Fetch users list
   const fetchUsers = () => {
     fetch(`${IP}/itelinc/resources/generic/getusers`, {
       method: "POST",
@@ -149,7 +204,7 @@ export default function DDIAssociationTable() {
     fetchUsers();
   }, []);
 
-  // Normalize the associations data to handle both associated and unassociated users
+  // Normalize associations data to handle both associated and unassociated users
   const normalizedData = useMemo(() => {
     const userMap = {};
 
@@ -191,76 +246,149 @@ export default function DDIAssociationTable() {
     return Object.values(userMap);
   }, [associations]);
 
-  // Filter normalized data based on search query
+  // Apply column filters and search query
   const filteredData = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return normalizedData;
+    let filtered = [...normalizedData];
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((user) =>
+        user.usersname.toLowerCase().includes(query)
+      );
     }
 
-    const query = searchQuery.toLowerCase();
-    return normalizedData.filter((user) =>
-      user.usersname.toLowerCase().includes(query)
-    );
-  }, [normalizedData, searchQuery]);
+    // Apply column filters
+    if (columnFilters.usersname) {
+      const nameQuery = columnFilters.usersname.toLowerCase();
+      filtered = filtered.filter((user) =>
+        user.usersname.toLowerCase().includes(nameQuery)
+      );
+    }
 
-  // Sort the filtered data based on the current sort column and direction
-  const sortedData = useMemo(() => {
-    if (!filteredData.length) return [];
+    if (columnFilters.userscreatedby) {
+      const createdByQuery = columnFilters.userscreatedby.toLowerCase();
+      filtered = filtered.filter((user) =>
+        user.userscreatedby.toLowerCase().includes(createdByQuery)
+      );
+    }
 
-    return [...filteredData].sort((a, b) => {
-      let aValue, bValue;
+    if (columnFilters.incubateesname || columnFilters.usrincassncreatedbyname) {
+      filtered = filtered.map((user) => {
+        const filteredAssociations = user.associations.filter((assoc) => {
+          let matchesIncubatee = true;
+          let matchesCreatedBy = true;
 
-      // Get the values to compare based on the column
-      switch (sortColumn) {
-        case "usersname":
-          aValue = a.usersname || "";
-          bValue = b.usersname || "";
-          break;
-        case "userscreatedby":
-          aValue = a.userscreatedby || "";
-          bValue = b.userscreatedby || "";
-          break;
-        default:
-          return 0;
-      }
+          if (columnFilters.incubateesname) {
+            const incubateeQuery = columnFilters.incubateesname.toLowerCase();
+            matchesIncubatee = assoc.incubateesname
+              .toLowerCase()
+              .includes(incubateeQuery);
+          }
 
-      // Compare the values
-      if (typeof aValue === "string") {
-        return sortDirection === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
+          if (columnFilters.usrincassncreatedbyname) {
+            const createdByQuery =
+              columnFilters.usrincassncreatedbyname.toLowerCase();
+            matchesCreatedBy = (assoc.usrincassncreatedbyname || "N/A")
+              .toLowerCase()
+              .includes(createdByQuery);
+          }
+
+          return matchesIncubatee && matchesCreatedBy;
+        });
+
+        return {
+          ...user,
+          associations: filteredAssociations,
+        };
+      });
+
+      // Remove users with no associations after filtering
+      filtered = filtered.filter(
+        (user) =>
+          user.associations.length > 0 || user.usersname.includes(searchQuery)
+      );
+    }
+
+    return filtered;
+  }, [normalizedData, searchQuery, columnFilters]);
+
+  // Prepare data for export
+  const exportData = useMemo(() => {
+    const exportArray = [];
+
+    filteredData.forEach((user) => {
+      if (user.associations.length > 0) {
+        user.associations.forEach((assoc) => {
+          exportArray.push({
+            "DDI Name": user.usersname,
+            "Created By": user.userscreatedby,
+            Company: assoc.incubateesname,
+            "Associated By": assoc.usrincassncreatedbyname || "N/A",
+            "Association Date": formatDate(assoc.usrincassncreatedtime),
+          });
+        });
       } else {
-        // For numbers and dates
-        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+        exportArray.push({
+          "DDI Name": user.usersname,
+          "Created By": user.userscreatedby,
+          Company: "No companies associated",
+          "Associated By": "N/A",
+          "Association Date": "",
+        });
       }
     });
-  }, [filteredData, sortColumn, sortDirection]);
 
-  // Function to handle sorting
-  const handleSort = (column) => {
-    // If clicking the same column, toggle direction
-    if (column === sortColumn) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      // If clicking a new column, set it and default to ascending
-      setSortColumn(column);
-      setSortDirection("asc");
-    }
+    return exportArray;
+  }, [filteredData]);
+
+  // Export handlers
+  const handleExportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "DDI Associations");
+    XLSX.writeFile(wb, "DDI_Associations.xlsx");
   };
 
-  // Function to get the appropriate sort icon for a column
-  const getSortIcon = (column) => {
-    if (sortColumn !== column) {
-      return <FaSort className="sort-icon" />;
-    }
-    return sortDirection === "asc" ? (
-      <FaSortUp className="sort-icon active" />
-    ) : (
-      <FaSortDown className="sort-icon active" />
-    );
+  // Filter popover handlers
+  const handleFilterClick = (event, column) => {
+    setFilterAnchorEl(event.currentTarget);
+    setFilterColumn(column);
   };
 
-  // Start editing a user's incubatees
+  const handleFilterClose = () => {
+    setFilterAnchorEl(null);
+    setFilterColumn(null);
+  };
+
+  const handleFilterChange = (column, value) => {
+    // Apply filter immediately as user types
+    setColumnFilters((prev) => ({
+      ...prev,
+      [column]: value,
+    }));
+    setPage(0); // Reset to first page when filtering
+  };
+
+  const clearFilter = () => {
+    setColumnFilters((prev) => ({
+      ...prev,
+      [filterColumn]: "",
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setColumnFilters({
+      usersname: "",
+      userscreatedby: "",
+      incubateesname: "",
+      usrincassncreatedbyname: "",
+    });
+    setSearchQuery("");
+    setPage(0);
+  };
+
+  // Existing functions
   const startEditing = (user) => {
     setEditingUserId(user.usersrecid);
     const userIncubatees = user.associations.map(
@@ -269,20 +397,11 @@ export default function DDIAssociationTable() {
     setSelectedIncubatees(userIncubatees);
   };
 
-  // Cancel editing
   const cancelEditing = () => {
     setEditingUserId(null);
     setSelectedIncubatees([]);
   };
 
-  // Cancel new association
-  const cancelNewAssociation = () => {
-    setShowNewAssociationModal(false);
-    setSelectedUser("");
-    setSelectedIncubateesForNew([]);
-  };
-
-  // Handle checkbox change for edit modal
   const handleCheckboxChange = (incubateeId) => {
     setSelectedIncubatees((prev) => {
       if (prev.includes(incubateeId)) {
@@ -293,23 +412,6 @@ export default function DDIAssociationTable() {
     });
   };
 
-  // Handle checkbox change for new association modal
-  const handleNewCheckboxChange = (incubateeId) => {
-    setSelectedIncubateesForNew((prev) => {
-      if (prev.includes(incubateeId)) {
-        return prev.filter((id) => id !== incubateeId);
-      } else {
-        return [...prev, incubateeId];
-      }
-    });
-  };
-
-  // Handle user selection for new association
-  const handleUserChange = (e) => {
-    setSelectedUser(e.target.value);
-  };
-
-  // Update user associations
   const updateAssociations = () => {
     if (!editingUserId) return;
 
@@ -341,6 +443,10 @@ export default function DDIAssociationTable() {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+
+          userid: userId || "1",
+          "X-Module": "DDI User Association",
+          "X-Action": "Add/Edit DDI  user Association",
         },
       })
         .then((res) => {
@@ -465,94 +571,6 @@ export default function DDIAssociationTable() {
       });
   };
 
-  // Create new user association
-  const createNewAssociation = () => {
-    if (!selectedUser || selectedIncubateesForNew.length === 0) {
-      Swal.fire(
-        "❌ Error",
-        "Please select a user and at least one incubatee",
-        "error"
-      );
-      return;
-    }
-
-    setUpdateLoading(true);
-
-    const promises = selectedIncubateesForNew.map((incubateeId) => {
-      const url = `${IP}/itelinc/addUserIncubationAssociation?usrincassnusersrecid=${selectedUser}&usrincassnincubateesrecid=${incubateeId}&usrincassncreatedby=${
-        userId || "1"
-      }&usrincassnmodifiedby=${userId || "1"}&usrincassnadminstate=1`;
-
-      return fetch(url, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data.statusCode !== 200) {
-            throw new Error(data.message || "Failed to create association");
-          }
-          return { success: true, incubateeId };
-        })
-        .catch((error) => {
-          return { success: false, incubateeId, error: error.message };
-        });
-    });
-
-    Promise.all(promises)
-      .then((results) => {
-        const successful = results.filter((r) => r.success);
-        const failed = results.filter((r) => !r.success);
-
-        if (failed.length === 0) {
-          Swal.fire(
-            "✅ Success",
-            "All DDI associations created successfully!",
-            "success"
-          );
-          fetchAssociations();
-          cancelNewAssociation();
-        } else if (successful.length > 0) {
-          const errorMessages = failed
-            .map((f) => `Incubatee ${f.incubateeId}: ${f.error}`)
-            .join("<br>");
-          Swal.fire({
-            title: "⚠️ Partial Success",
-            html: `${successful.length} associations created successfully, but ${failed.length} failed.<br><br>${errorMessages}`,
-            icon: "warning",
-          });
-          fetchAssociations();
-          cancelNewAssociation();
-        } else {
-          const errorMessages = failed
-            .map((f) => `Incubatee ${f.incubateeId}: ${f.error}`)
-            .join("<br>");
-          Swal.fire({
-            title: "❌ Error",
-            html: `Failed to create any DDI associations.<br><br>${errorMessages}`,
-            icon: "error",
-          });
-        }
-      })
-      .catch((err) => {
-        console.error("Error creating DDI associations:", err);
-        Swal.fire("❌ Error", "Failed to create DDI associations", "error");
-      })
-      .finally(() => {
-        setUpdateLoading(false);
-      });
-  };
-
-  // Delete association
   const handleDelete = (associationId) => {
     Swal.fire({
       title: "Are you sure?",
@@ -574,6 +592,10 @@ export default function DDIAssociationTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+
+            userid: userId || "1",
+            "X-Module": "DDI User Association",
+            "X-Action": "Delete DDI user Association",
           },
           body: JSON.stringify({}),
         })
@@ -606,334 +628,441 @@ export default function DDIAssociationTable() {
     });
   };
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
-  // Clear search
-  const clearSearch = () => {
-    setSearchQuery("");
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
+
+  // Paginated data
+  const paginatedData = useMemo(() => {
+    return filteredData.slice(
+      page * rowsPerPage,
+      page * rowsPerPage + rowsPerPage
+    );
+  }, [filteredData, page, rowsPerPage]);
+
+  // Check if any column has an active filter
+  const hasActiveFilters = Object.values(columnFilters).some(
+    (value) => value !== ""
+  );
 
   return (
     <div className="user-association-container">
-      <div className="user-association-header">
-        <h1 className="user-association-title">
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ display: "flex", alignItems: "center" }}
+        >
           <FaUsers style={{ marginRight: "8px" }} />
-          DDI-Incubatee Associations list
-        </h1>
-        <div className="search-container">
-          <div className="search-input-wrapper">
-            <FaSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search by name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-            {searchQuery && (
-              <button className="clear-search-btn" onClick={clearSearch}>
-                <FaTimes size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+          DDI-Incubatee Associations
+        </Typography>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <TextField
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <FaSearch />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchQuery("")}>
+                    <FaTimes size={14} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            variant="outlined"
+            size="small"
+          />
+          <Button variant="outlined" startIcon={<FaFileCsv />}>
+            <CSVLink
+              data={exportData}
+              filename="DDI_Associations.csv"
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              Export CSV
+            </CSVLink>
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<FaFileExcel />}
+            onClick={handleExportExcel}
+          >
+            Export Excel
+          </Button>
+        </Box>
+      </Box>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <Box sx={{ mb: 2 }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      )}
 
       {loading ? (
-        <p className="user-association-empty">Loading DDI associations...</p>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <Typography>Loading DDI associations...</Typography>
+        </Box>
       ) : (
-        <div className="table-container">
-          <table className="association-table">
-            <thead>
-              <tr>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("usersname")}
-                >
-                  Name {getSortIcon("usersname")}
-                </th>
-                <th
-                  className="sortable-header"
-                  onClick={() => handleSort("userscreatedby")}
-                >
-                  Created By {getSortIcon("userscreatedby")}
-                </th>
-                <th>Companies</th>
-                <th>Associated By</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedData.map((user) => {
-                const hasAssociations = user.associations.length > 0;
-                const rowCount = Math.max(1, user.associations.length);
+        <Paper elevation={2} sx={{ width: "100%", overflow: "hidden" }}>
+          <TableContainer sx={{ maxHeight: 800 }}>
+            <Table stickyHeader aria-label="sticky table">
+              <TableHead>
+                <TableRow>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Name</Typography>
+                      <Tooltip title="Filter">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleFilterClick(e, "usersname")}
+                          color={
+                            columnFilters.usersname ? "primary" : "default"
+                          }
+                        >
+                          <FaFilter size={14} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Created By</Typography>
+                      <Tooltip title="Filter">
+                        <IconButton
+                          size="small"
+                          onClick={(e) =>
+                            handleFilterClick(e, "userscreatedby")
+                          }
+                          color={
+                            columnFilters.userscreatedby ? "primary" : "default"
+                          }
+                        >
+                          <FaFilter size={14} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Companies</Typography>
+                      <Tooltip title="Filter">
+                        <IconButton
+                          size="small"
+                          onClick={(e) =>
+                            handleFilterClick(e, "incubateesname")
+                          }
+                          color={
+                            columnFilters.incubateesname ? "primary" : "default"
+                          }
+                        >
+                          <FaFilter size={14} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Associated By</Typography>
+                      <Tooltip title="Filter">
+                        <IconButton
+                          size="small"
+                          onClick={(e) =>
+                            handleFilterClick(e, "usrincassncreatedbyname")
+                          }
+                          color={
+                            columnFilters.usrincassncreatedbyname
+                              ? "primary"
+                              : "default"
+                          }
+                        >
+                          <FaFilter size={14} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Actions</Typography>
+                      {hasActiveFilters && (
+                        <Tooltip title="Clear all filters">
+                          <IconButton size="small" onClick={clearAllFilters}>
+                            <FaTimes />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedData.map((user) => {
+                  const hasAssociations = user.associations.length > 0;
+                  const rowCount = Math.max(1, user.associations.length);
 
-                return (
-                  <React.Fragment key={user.usersrecid}>
-                    {Array.from({ length: rowCount }).map((_, index) => (
-                      <tr
-                        key={`${user.usersrecid}-${index}`}
-                        className="association-row"
-                      >
-                        {index === 0 ? (
-                          <>
-                            <td className="user-name-cell" rowSpan={rowCount}>
-                              <div className="user-info">
-                                <span className="user-name">
-                                  {user.usersname}
-                                </span>
-                                <button
-                                  className="btn-edit"
-                                  onClick={() => startEditing(user)}
-                                  title="Edit associations"
-                                >
-                                  <FaEdit size={16} />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="created-by-cell" rowSpan={rowCount}>
-                              {user.userscreatedby}
-                            </td>
-                          </>
-                        ) : null}
-
-                        {hasAssociations ? (
-                          <>
-                            <td className="company-cell">
-                              <div className="company-info">
-                                <span className="company-name">
-                                  {user.associations[index].incubateesname}
-                                </span>
-                                <span className="association-date">
-                                  {formatDate(
-                                    user.associations[index]
-                                      .usrincassncreatedtime
-                                  )}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="associated-by-cell">
-                              {user.associations[index]
-                                .usrincassncreatedbyname || "N/A"}
-                            </td>
-                            <td className="delete-cell">
-                              <button
-                                className="btn-delete"
-                                onClick={() =>
-                                  handleDelete(
-                                    user.associations[index].usrincassnrecid
-                                  )
-                                }
-                                disabled={isDeleting}
-                                title="Remove association"
+                  return (
+                    <React.Fragment key={user.usersrecid}>
+                      {Array.from({ length: rowCount }).map((_, index) => (
+                        <TableRow
+                          key={`${user.usersrecid}-${index}`}
+                          hover
+                          role="checkbox"
+                          tabIndex={-1}
+                        >
+                          {index === 0 ? (
+                            <>
+                              <TableCell
+                                rowSpan={rowCount}
+                                sx={{
+                                  verticalAlign: "middle",
+                                  textAlign: "center",
+                                  borderRight:
+                                    "1px solid rgba(224, 224, 224, 1)",
+                                  padding: "16px",
+                                }}
                               >
-                                {isDeleting ? (
-                                  <FaSpinner className="spinner" size={14} />
-                                ) : (
-                                  <FaTrash size={14} />
-                                )}
-                              </button>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="no-association-cell" colSpan="3">
-                              <span className="no-association">
-                                No companies associated
-                              </span>
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Typography
+                                    variant="body1"
+                                    fontWeight="medium"
+                                  >
+                                    {user.usersname}
+                                  </Typography>
+                                  <Tooltip title="Edit associations">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => startEditing(user)}
+                                    >
+                                      <FaEdit size={16} />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
+                              </TableCell>
+                              <TableCell
+                                rowSpan={rowCount}
+                                sx={{
+                                  verticalAlign: "middle",
+                                  textAlign: "center",
+                                  borderRight:
+                                    "1px solid rgba(224, 224, 224, 1)",
+                                  padding: "16px",
+                                }}
+                              >
+                                {user.userscreatedby}
+                              </TableCell>
+                            </>
+                          ) : null}
 
-          {sortedData.length === 0 && (
-            <div className="user-association-empty">
-              {searchQuery
-                ? "No DDI users found matching your search"
-                : "No DDI users found"}
-            </div>
-          )}
-        </div>
+                          {hasAssociations ? (
+                            <>
+                              <TableCell>
+                                <Box>
+                                  <Typography variant="body2">
+                                    {user.associations[index].incubateesname}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="textSecondary"
+                                  >
+                                    {formatDate(
+                                      user.associations[index]
+                                        .usrincassncreatedtime
+                                    )}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                {user.associations[index]
+                                  .usrincassncreatedbyname || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <Tooltip title="Remove association">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      handleDelete(
+                                        user.associations[index].usrincassnrecid
+                                      )
+                                    }
+                                    disabled={isDeleting}
+                                  >
+                                    {isDeleting ? (
+                                      <FaSpinner
+                                        className="spinner"
+                                        size={14}
+                                      />
+                                    ) : (
+                                      <FaTrash size={14} />
+                                    )}
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <TableCell colSpan={3}>
+                              <Typography color="textSecondary">
+                                No companies associated
+                              </Typography>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            component="div"
+            count={filteredData.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
       )}
+
+      {filteredData.length === 0 && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <Typography color="textSecondary">
+            {searchQuery || hasActiveFilters
+              ? "No DDI users found matching your filters"
+              : "No DDI users found"}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Filter Popover */}
+      <Popover
+        open={Boolean(filterAnchorEl)}
+        anchorEl={filterAnchorEl}
+        onClose={handleFilterClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+      >
+        <Card sx={{ minWidth: 280, maxWidth: 400 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Filter by {filterColumn === "usersname" && "Name"}
+              {filterColumn === "userscreatedby" && "Created By"}
+              {filterColumn === "incubateesname" && "Companies"}
+              {filterColumn === "usrincassncreatedbyname" && "Associated By"}
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder={`Enter ${filterColumn === "usersname" && "name"}
+                ${filterColumn === "userscreatedby" && "created by"}
+                ${filterColumn === "incubateesname" && "company"}
+                ${
+                  filterColumn === "usrincassncreatedbyname" && "associated by"
+                }...`}
+              value={columnFilters[filterColumn] || ""}
+              onChange={(e) => handleFilterChange(filterColumn, e.target.value)}
+              variant="outlined"
+              margin="normal"
+            />
+          </CardContent>
+          <CardActions sx={{ justifyContent: "flex-end" }}>
+            <Button size="small" onClick={clearFilter}>
+              Clear
+            </Button>
+            <Button size="small" onClick={handleFilterClose}>
+              Close
+            </Button>
+          </CardActions>
+        </Card>
+      </Popover>
 
       {/* Edit Modal */}
-      {editingUserId && (
-        <div className="user-association-modal-backdrop">
-          <div className="user-association-modal-content">
-            <div className="user-association-modal-header">
-              <h3>Edit DDI Associations</h3>
-              <button className="btn-close" onClick={cancelEditing}>
-                <FaTimes size={20} />
-              </button>
-            </div>
-
-            <div className="user-association-modal-body">
-              <h4>Select Incubatees:</h4>
-              <div className="incubatees-checklist">
-                {incubatees.map((incubatee) => (
-                  <div
-                    key={incubatee.incubateesrecid}
-                    className="incubatee-checkbox-item"
-                  >
-                    <input
-                      type="checkbox"
-                      id={`incubatee-${incubatee.incubateesrecid}`}
-                      checked={selectedIncubatees.includes(
-                        incubatee.incubateesrecid
-                      )}
-                      onChange={() =>
-                        handleCheckboxChange(incubatee.incubateesrecid)
-                      }
-                      disabled={updateLoading}
-                    />
-                    <label htmlFor={`incubatee-${incubatee.incubateesrecid}`}>
-                      {incubatee.incubateesname}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="user-association-modal-footer">
-              <button
-                className="btn-cancel"
-                onClick={cancelEditing}
-                disabled={updateLoading}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-save"
-                onClick={updateAssociations}
-                disabled={updateLoading}
-              >
-                {updateLoading ? (
-                  <>
-                    <FaSpinner className="spinner" size={14} /> Updating...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </button>
-            </div>
-
-            {updateLoading && (
-              <div className="modal-loading-overlay">
-                <div className="modal-loading-spinner">
-                  <FaSpinner className="spinner" size={24} />
-                  <p>Updating associations...</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* New Association Modal */}
-      {showNewAssociationModal && (
-        <div className="user-association-modal-backdrop">
-          <div className="user-association-modal-content">
-            <div className="user-association-modal-header">
-              <h3>Associate New DDI</h3>
-              <button className="btn-close" onClick={cancelNewAssociation}>
-                <FaTimes size={20} />
-              </button>
-            </div>
-
-            <div className="user-association-modal-body">
-              <div className="form-group">
-                <label htmlFor="user-select">Select DDI:</label>
-                <select
-                  id="user-select"
-                  className="user-select"
-                  value={selectedUser}
-                  onChange={handleUserChange}
-                  disabled={updateLoading}
-                >
-                  <option value="">-- Select DDI --</option>
-                  {users.map((user) => (
-                    <option key={user.usersrecid} value={user.usersrecid}>
-                      {user.usersname}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <h4>Select Incubatees:</h4>
-              <div className="incubatees-checklist">
-                {incubatees.map((incubatee) => (
-                  <div
-                    key={incubatee.incubateesrecid}
-                    className="incubatee-checkbox-item"
-                  >
-                    <input
-                      type="checkbox"
-                      id={`new-incubatee-${incubatee.incubateesrecid}`}
-                      checked={selectedIncubateesForNew.includes(
-                        incubatee.incubateesrecid
-                      )}
-                      onChange={() =>
-                        handleNewCheckboxChange(incubatee.incubateesrecid)
-                      }
-                      disabled={updateLoading}
-                    />
-                    <label
-                      htmlFor={`new-incubatee-${incubatee.incubateesrecid}`}
-                    >
-                      {incubatee.incubateesname}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="user-association-modal-footer">
-              <button
-                className="btn-cancel"
-                onClick={cancelNewAssociation}
-                disabled={updateLoading}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-save"
-                onClick={createNewAssociation}
-                disabled={updateLoading}
-              >
-                {updateLoading ? (
-                  <>
-                    <FaSpinner className="spinner" size={14} /> Creating...
-                  </>
-                ) : (
-                  "Create Association"
-                )}
-              </button>
-            </div>
-
-            {updateLoading && (
-              <div className="modal-loading-overlay">
-                <div className="modal-loading-spinner">
-                  <FaSpinner className="spinner" size={24} />
-                  <p>Creating associations...</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={Boolean(editingUserId)}
+        onClose={cancelEditing}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Edit DDI Associations</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle1" sx={{ mb: 2 }}>
+            Select Incubatees:
+          </Typography>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+              gap: 1,
+              maxHeight: 300,
+              overflow: "auto",
+            }}
+          >
+            {incubatees.map((incubatee) => (
+              <FormControlLabel
+                key={incubatee.incubateesrecid}
+                control={
+                  <Checkbox
+                    checked={selectedIncubatees.includes(
+                      incubatee.incubateesrecid
+                    )}
+                    onChange={() =>
+                      handleCheckboxChange(incubatee.incubateesrecid)
+                    }
+                    disabled={updateLoading}
+                  />
+                }
+                label={incubatee.incubateesname}
+              />
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelEditing} disabled={updateLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={updateAssociations}
+            variant="contained"
+            disabled={updateLoading}
+            startIcon={
+              updateLoading && <FaSpinner className="spinner" size={14} />
+            }
+          >
+            {updateLoading ? "Updating..." : "Save Changes"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

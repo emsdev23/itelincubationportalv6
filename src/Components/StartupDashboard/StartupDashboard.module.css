@@ -933,6 +933,18 @@
   transition: all 0.2s ease;
 }
 
+.btnPrimary {
+  background: var(--primary, #2563eb);
+  color: white;
+  padding: 0.2rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: none;
+  cursor: pointer;
+}
 .obsoleteButton:hover {
   background: #ff6b6b;
   transform: scale(1.02);

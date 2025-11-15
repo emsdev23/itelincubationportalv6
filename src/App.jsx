@@ -14,6 +14,8 @@ import { InactivityHandler } from "./Components/Datafetching/InactivityHandler";
 import ChatHistory from "./Components/ChatApp/ChatHistory";
 import ChatApp from "./Components/ChatApp/ChatApp";
 import IncubationManagementPage from "./Components/Incubation/IncubationManagementPage";
+import RolesManagement from "./Components/RoleManagement/RolesManagement";
+import ApplicationManagement from "./Components/ApplicationManagement/ApplicationManagement";
 
 function App() {
   return (
@@ -83,6 +85,23 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ChatHistory />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/Incubation/Dashboard/Roles"
+              element={
+                <ProtectedRoute>
+                  <RolesManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/Incubation/Dashboard/Applications"
+              element={
+                <ProtectedRoute>
+                  <ApplicationManagement />
                 </ProtectedRoute>
               }
             />

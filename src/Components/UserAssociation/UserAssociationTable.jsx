@@ -1,225 +1,88 @@
-import React, { useState, useContext, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Download,
-  Edit,
-  Trash2,
-  Users,
-  X,
-  Plus,
-  Search,
-  SortAsc,
-  SortDesc,
-} from "lucide-react";
-import * as XLSX from "xlsx";
+  FaTrash,
+  FaEdit,
+  FaUsers,
+  FaTimes,
+  FaSpinner,
+  FaSearch,
+  FaSort,
+  FaSortUp,
+  FaSortDown,
+  FaFileExcel,
+  FaFileCsv,
+  FaFilter,
+} from "react-icons/fa";
 import Swal from "sweetalert2";
+import "./UserAssociationTable.css";
+import { IPAdress } from "../Datafetching/IPAdrees";
 
-// Material UI imports
-import { DataGrid } from "@mui/x-data-grid";
-import Paper from "@mui/material/Paper";
+// Material-UI imports
 import {
   Button,
   Box,
   Typography,
   TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Chip,
+  InputAdornment,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Checkbox,
   FormControlLabel,
-  IconButton,
-  CircularProgress,
+  Paper,
   Tooltip,
-  Collapse,
-  TableCell,
-  TableRow,
-  TableContainer,
   Table,
-  TableHead,
   TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Popover,
+  Card,
+  CardContent,
+  CardActions,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { IPAdress } from "../Datafetching/IPAdrees";
-import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 
-// Styled components for custom styling
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  width: "100%",
-  marginBottom: theme.spacing(2),
-}));
-
-const StyledChip = styled(Chip)(({ theme }) => ({
-  margin: theme.spacing(0.5),
-}));
-
-const LoadingOverlay = styled(Box)(({ theme }) => ({
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: "rgba(255, 255, 255, 0.7)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 1000,
-}));
-
-// Common date formatting function
-const formatDate = (dateString) => {
-  if (!dateString) return "-";
-
-  try {
-    const formattedDate = dateString.endsWith("Z")
-      ? `${dateString.slice(0, -1)}T00:00:00Z`
-      : dateString;
-
-    return new Date(formattedDate).toLocaleDateString();
-  } catch (error) {
-    console.error("Error parsing date:", error);
-    return dateString;
-  }
-};
-
-// Row component for grouped data
-const GroupedRow = ({ row, isExpanded, onToggle, onDelete, onEdit }) => {
-  return (
-    <>
-      <TableRow sx={{ "& > *": { borderBottom: "unset" } }}>
-        <TableCell>
-          <IconButton
-            aria-label="expand row"
-            size="small"
-            onClick={() => onToggle(row.id)}
-          >
-            {isExpanded ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-          </IconButton>
-        </TableCell>
-        <TableCell component="th" scope="row">
-          <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="body2">{row.usersname}</Typography>
-          </Box>
-        </TableCell>
-        <TableCell>{row.userscreatedby}</TableCell>
-        <TableCell>
-          {row.associations.length > 0 ? (
-            <Typography variant="body2">
-              {row.associations.length} compan
-              {row.associations.length === 1 ? "y" : "ies"}
-            </Typography>
-          ) : (
-            <Typography
-              variant="body2"
-              color="textSecondary"
-              fontStyle="italic"
-            >
-              No companies associated
-            </Typography>
-          )}
-        </TableCell>
-        <TableCell>
-          <IconButton size="small" onClick={() => onEdit(row)}>
-            <Edit size={16} />
-          </IconButton>
-        </TableCell>
-      </TableRow>
-      <TableRow>
-        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
-          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-            <Box sx={{ margin: 1 }}>
-              <Typography variant="h6" gutterBottom component="div">
-                Companies
-              </Typography>
-              <Table size="small" aria-label="companies">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Company Name</TableCell>
-                    <TableCell>Associated By</TableCell>
-                    <TableCell>Association Date</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {row.associations.map((assoc) => (
-                    <TableRow key={assoc.usrincassnrecid}>
-                      <TableCell component="th" scope="row">
-                        {assoc.incubateesname}
-                      </TableCell>
-                      <TableCell>
-                        {assoc.usrincassncreatedbyname || "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(assoc.usrincassncreatedtime)}
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => onDelete(assoc.usrincassnrecid)}
-                        >
-                          <Trash2 size={16} />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-          </Collapse>
-        </TableCell>
-      </TableRow>
-    </>
-  );
-};
+// Export functionality imports
+import { CSVLink } from "react-csv";
+import * as XLSX from "xlsx";
 
 export default function UserAssociationTable() {
-  const navigate = useNavigate();
-
-  // Get IP address from your IPAdress file
-  const IP = IPAdress;
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");
   const incUserid = sessionStorage.getItem("incuserid");
+  const IP = IPAdress;
 
-  // States
+  // Existing states
   const [associations, setAssociations] = useState([]);
   const [incubatees, setIncubatees] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingUserId, setEditingUserId] = useState(null);
   const [selectedIncubatees, setSelectedIncubatees] = useState([]);
   const [updateLoading, setUpdateLoading] = useState(false);
-  const [showNewAssociationModal, setShowNewAssociationModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedIncubateesForNew, setSelectedIncubateesForNew] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [expandedRows, setExpandedRows] = useState([]);
-
-  // Pagination state for Material UI
-  const [paginationModel, setPaginationModel] = useState({
-    page: 0,
-    pageSize: 10,
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [columnFilters, setColumnFilters] = useState({
+    usersname: "",
+    userscreatedby: "",
+    incubateesname: "",
+    usrincassncreatedbyname: "",
   });
 
-  // Sorting state
-  const [sortModel, setSortModel] = useState([
-    {
-      field: "usersname",
-      sort: "asc",
-    },
-  ]);
+  // Filter popover states
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  const [filterColumn, setFilterColumn] = useState(null);
 
-  // Check if XLSX is available
-  const isXLSXAvailable = !!XLSX;
+  // Sorting states
+  const [sortColumn, setSortColumn] = useState("usersname");
+  const [sortDirection, setSortDirection] = useState("asc");
 
   // Fetch user associations
   const fetchAssociations = () => {
@@ -232,6 +95,10 @@ export default function UserAssociationTable() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+
+        userid: userId || "1",
+        "X-Module": "user Association",
+        "X-Action": "Fetching Operator User Association Details",
       },
       body: JSON.stringify({
         userId: userId || null,
@@ -291,43 +158,9 @@ export default function UserAssociationTable() {
       });
   };
 
-  // Fetch users list
-  const fetchUsers = () => {
-    fetch(`${IP}/itelinc/resources/generic/getusers`, {
-      method: "POST",
-      mode: "cors",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: userId || null,
-        userIncId: incUserid,
-      }),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP error! Status: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (data.statusCode === 200) {
-          setUsers(data.data || []);
-        } else {
-          throw new Error(data.message || "Failed to fetch users");
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching users:", err);
-        Swal.fire("❌ Error", "Failed to load users", "error");
-      });
-  };
-
   useEffect(() => {
     fetchAssociations();
     fetchIncubatees();
-    fetchUsers();
   }, []);
 
   // Normalize the associations data to handle both associated and unassociated users
@@ -339,7 +172,6 @@ export default function UserAssociationTable() {
         const userId = item.usrincassnusersrecid;
         if (!userMap[userId]) {
           userMap[userId] = {
-            id: userId,
             usersrecid: userId,
             usersname: item.usersname,
             userscreatedby: item.userscreatedby,
@@ -358,7 +190,6 @@ export default function UserAssociationTable() {
         const userId = item.usersrecid;
         if (!userMap[userId]) {
           userMap[userId] = {
-            id: userId,
             usersrecid: userId,
             usersname: item.usersname,
             userscreatedby: item.userscreatedby || "N/A",
@@ -371,23 +202,209 @@ export default function UserAssociationTable() {
     return Object.values(userMap);
   }, [associations]);
 
-  // Filter data using useMemo for performance
+  // Apply column filters and search query
   const filteredData = useMemo(() => {
-    return normalizedData.filter((user) => {
-      const matchesSearch = (user.usersname || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+    let filtered = [...normalizedData];
 
-      return matchesSearch;
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((user) =>
+        user.usersname.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply column filters
+    if (columnFilters.usersname) {
+      const nameQuery = columnFilters.usersname.toLowerCase();
+      filtered = filtered.filter((user) =>
+        user.usersname.toLowerCase().includes(nameQuery)
+      );
+    }
+
+    if (columnFilters.userscreatedby) {
+      const createdByQuery = columnFilters.userscreatedby.toLowerCase();
+      filtered = filtered.filter((user) =>
+        user.userscreatedby.toLowerCase().includes(createdByQuery)
+      );
+    }
+
+    if (columnFilters.incubateesname || columnFilters.usrincassncreatedbyname) {
+      filtered = filtered.map((user) => {
+        const filteredAssociations = user.associations.filter((assoc) => {
+          let matchesIncubatee = true;
+          let matchesCreatedBy = true;
+
+          if (columnFilters.incubateesname) {
+            const incubateeQuery = columnFilters.incubateesname.toLowerCase();
+            matchesIncubatee = assoc.incubateesname
+              .toLowerCase()
+              .includes(incubateeQuery);
+          }
+
+          if (columnFilters.usrincassncreatedbyname) {
+            const createdByQuery =
+              columnFilters.usrincassncreatedbyname.toLowerCase();
+            matchesCreatedBy = (assoc.usrincassncreatedbyname || "N/A")
+              .toLowerCase()
+              .includes(createdByQuery);
+          }
+
+          return matchesIncubatee && matchesCreatedBy;
+        });
+
+        return {
+          ...user,
+          associations: filteredAssociations,
+        };
+      });
+
+      // Remove users with no associations after filtering
+      filtered = filtered.filter(
+        (user) =>
+          user.associations.length > 0 || user.usersname.includes(searchQuery)
+      );
+    }
+
+    return filtered;
+  }, [normalizedData, searchQuery, columnFilters]);
+
+  // Sort the filtered data based on the current sort column and direction
+  const sortedData = useMemo(() => {
+    if (!filteredData.length) return [];
+
+    return [...filteredData].sort((a, b) => {
+      let aValue, bValue;
+
+      // Get the values to compare based on the column
+      switch (sortColumn) {
+        case "usersname":
+          aValue = a.usersname || "";
+          bValue = b.usersname || "";
+          break;
+        case "userscreatedby":
+          aValue = a.userscreatedby || "";
+          bValue = b.userscreatedby || "";
+          break;
+        default:
+          return 0;
+      }
+
+      // Compare the values
+      if (typeof aValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else {
+        // For numbers and dates
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
     });
-  }, [normalizedData, searchTerm]);
+  }, [filteredData, sortColumn, sortDirection]);
 
-  // Handle row expansion
-  const handleToggleRow = (rowId) => {
-    setExpandedRows((prev) =>
-      prev.includes(rowId)
-        ? prev.filter((id) => id !== rowId)
-        : [...prev, rowId]
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  // Prepare data for export
+  const exportData = useMemo(() => {
+    const exportArray = [];
+
+    sortedData.forEach((user) => {
+      if (user.associations.length > 0) {
+        user.associations.forEach((assoc) => {
+          exportArray.push({
+            "Operator Name": user.usersname,
+            "Created By": user.userscreatedby,
+            Company: assoc.incubateesname,
+            "Associated By": assoc.usrincassncreatedbyname || "N/A",
+            "Association Date": formatDate(assoc.usrincassncreatedtime),
+          });
+        });
+      } else {
+        exportArray.push({
+          "Operator Name": user.usersname,
+          "Created By": user.userscreatedby,
+          Company: "No companies associated",
+          "Associated By": "N/A",
+          "Association Date": "",
+        });
+      }
+    });
+
+    return exportArray;
+  }, [sortedData]);
+
+  // Export handlers
+  const handleExportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Operator Associations");
+    XLSX.writeFile(wb, "Operator_Associations.xlsx");
+  };
+
+  // Filter popover handlers
+  const handleFilterClick = (event, column) => {
+    setFilterAnchorEl(event.currentTarget);
+    setFilterColumn(column);
+  };
+
+  const handleFilterClose = () => {
+    setFilterAnchorEl(null);
+    setFilterColumn(null);
+  };
+
+  const handleFilterChange = (column, value) => {
+    // Apply filter immediately as user types
+    setColumnFilters((prev) => ({
+      ...prev,
+      [column]: value,
+    }));
+    setPage(0); // Reset to first page when filtering
+  };
+
+  const clearFilter = () => {
+    setColumnFilters((prev) => ({
+      ...prev,
+      [filterColumn]: "",
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setColumnFilters({
+      usersname: "",
+      userscreatedby: "",
+      incubateesname: "",
+      usrincassncreatedbyname: "",
+    });
+    setSearchQuery("");
+    setPage(0);
+  };
+
+  // Function to handle sorting
+  const handleSort = (column) => {
+    // If clicking the same column, toggle direction
+    if (column === sortColumn) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // If clicking a new column, set it and default to ascending
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Function to get the appropriate sort icon for a column
+  const getSortIcon = (column) => {
+    if (sortColumn !== column) {
+      return <FaSort className="sort-icon" />;
+    }
+    return sortDirection === "asc" ? (
+      <FaSortUp className="sort-icon active" />
+    ) : (
+      <FaSortDown className="sort-icon active" />
     );
   };
 
@@ -406,13 +423,6 @@ export default function UserAssociationTable() {
     setSelectedIncubatees([]);
   };
 
-  // Cancel new association
-  const cancelNewAssociation = () => {
-    setShowNewAssociationModal(false);
-    setSelectedUser("");
-    setSelectedIncubateesForNew([]);
-  };
-
   // Handle checkbox change for edit modal
   const handleCheckboxChange = (incubateeId) => {
     setSelectedIncubatees((prev) => {
@@ -422,22 +432,6 @@ export default function UserAssociationTable() {
         return [...prev, incubateeId];
       }
     });
-  };
-
-  // Handle checkbox change for new association modal
-  const handleNewCheckboxChange = (incubateeId) => {
-    setSelectedIncubateesForNew((prev) => {
-      if (prev.includes(incubateeId)) {
-        return prev.filter((id) => id !== incubateeId);
-      } else {
-        return [...prev, incubateeId];
-      }
-    });
-  };
-
-  // Handle user selection for new association
-  const handleUserChange = (e) => {
-    setSelectedUser(e.target.value);
   };
 
   // Update user associations
@@ -472,6 +466,10 @@ export default function UserAssociationTable() {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+
+          userid: userId || "1",
+          "X-Module": "user Association",
+          "X-Action": "Add/Edit Operator user Association",
         },
       })
         .then((res) => {
@@ -507,6 +505,9 @@ export default function UserAssociationTable() {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          userid: userId || "1",
+          "X-Module": "user Association",
+          "X-Action": "Delete  Operator user Association",
         },
         body: JSON.stringify({}),
       })
@@ -596,93 +597,6 @@ export default function UserAssociationTable() {
       });
   };
 
-  // Create new user association
-  const createNewAssociation = () => {
-    if (!selectedUser || selectedIncubateesForNew.length === 0) {
-      Swal.fire(
-        "❌ Error",
-        "Please select a user and at least one incubatee",
-        "error"
-      );
-      return;
-    }
-
-    setUpdateLoading(true);
-
-    const promises = selectedIncubateesForNew.map((incubateeId) => {
-      const url = `${IP}/itelinc/addUserIncubationAssociation?usrincassnusersrecid=${selectedUser}&usrincassnincubateesrecid=${incubateeId}&usrincassncreatedby=${
-        userId || "1"
-      }&usrincassnmodifiedby=${userId || "1"}&usrincassnadminstate=1`;
-
-      return fetch(url, {
-        method: "POST",
-        mode: "cors",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
-        .then((res) => {
-          if (!res.ok) {
-            throw new Error(`HTTP error! Status: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data.statusCode !== 200) {
-            throw new Error(data.message || "Failed to create association");
-          }
-          return { success: true, incubateeId };
-        })
-        .catch((error) => {
-          return { success: false, incubateeId, error: error.message };
-        });
-    });
-
-    Promise.all(promises)
-      .then((results) => {
-        const successful = results.filter((r) => r.success);
-        const failed = results.filter((r) => !r.success);
-
-        if (failed.length === 0) {
-          Swal.fire(
-            "✅ Success",
-            "All user associations created successfully!",
-            "success"
-          );
-          fetchAssociations();
-          cancelNewAssociation();
-        } else if (successful.length > 0) {
-          const errorMessages = failed
-            .map((f) => `Incubatee ${f.incubateeId}: ${f.error}`)
-            .join("<br>");
-          Swal.fire({
-            title: "⚠️ Partial Success",
-            html: `${successful.length} associations created successfully, but ${failed.length} failed.<br><br>${errorMessages}`,
-            icon: "warning",
-          });
-          fetchAssociations();
-          cancelNewAssociation();
-        } else {
-          const errorMessages = failed
-            .map((f) => `Incubatee ${f.incubateeId}: ${f.error}`)
-            .join("<br>");
-          Swal.fire({
-            title: "❌ Error",
-            html: `Failed to create any user associations.<br><br>${errorMessages}`,
-            icon: "error",
-          });
-        }
-      })
-      .catch((err) => {
-        console.error("Error creating user associations:", err);
-        Swal.fire("❌ Error", "Failed to create user associations", "error");
-      })
-      .finally(() => {
-        setUpdateLoading(false);
-      });
-  };
-
   // Delete association
   const handleDelete = (associationId) => {
     Swal.fire({
@@ -705,6 +619,10 @@ export default function UserAssociationTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
+
+            userid: userId || "1",
+            "X-Module": "user Association",
+            "X-Action": "Delete  Operator user Association",
           },
           body: JSON.stringify({}),
         })
@@ -737,157 +655,82 @@ export default function UserAssociationTable() {
     });
   };
 
-  // Export to CSV function
-  const exportToCSV = () => {
-    // Create a copy of the data for export
-    const exportData = normalizedData.flatMap((user) => {
-      if (user.associations.length === 0) {
-        return [
-          {
-            "User Name": user.usersname,
-            "Created By": user.userscreatedby,
-            Company: "No companies associated",
-            "Associated By": "N/A",
-            "Association Date": "N/A",
-          },
-        ];
-      } else {
-        return user.associations.map((assoc) => ({
-          "User Name": user.usersname,
-          "Created By": user.userscreatedby,
-          Company: assoc.incubateesname,
-          "Associated By": assoc.usrincassncreatedbyname || "N/A",
-          "Association Date": formatDate(assoc.usrincassncreatedtime),
-        }));
-      }
-    });
-
-    // Convert to CSV
-    const headers = Object.keys(exportData[0] || {});
-    const csvContent = [
-      headers.join(","),
-      ...exportData.map((row) =>
-        headers
-          .map((header) => {
-            // Handle values that might contain commas
-            const value = row[header];
-            return typeof value === "string" && value.includes(",")
-              ? `"${value}"`
-              : value;
-          })
-          .join(",")
-      ),
-    ].join("\n");
-
-    // Create a blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `user_associations_${new Date().toISOString().slice(0, 10)}.csv`
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
-  // Export to Excel function
-  const exportToExcel = () => {
-    if (!isXLSXAvailable) {
-      console.error("XLSX library not available");
-      alert("Excel export is not available. Please install the xlsx package.");
-      return;
-    }
-
-    try {
-      // Create a copy of the data for export
-      const exportData = normalizedData.flatMap((user) => {
-        if (user.associations.length === 0) {
-          return [
-            {
-              "User Name": user.usersname,
-              "Created By": user.userscreatedby,
-              Company: "No companies associated",
-              "Associated By": "N/A",
-              "Association Date": "N/A",
-            },
-          ];
-        } else {
-          return user.associations.map((assoc) => ({
-            "User Name": user.usersname,
-            "Created By": user.userscreatedby,
-            Company: assoc.incubateesname,
-            "Associated By": assoc.usrincassncreatedbyname || "N/A",
-            "Association Date": formatDate(assoc.usrincassncreatedtime),
-          }));
-        }
-      });
-
-      // Create a workbook
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(exportData);
-
-      // Add the worksheet to the workbook
-      XLSX.utils.book_append_sheet(wb, ws, "User Associations");
-
-      // Generate the Excel file and download
-      XLSX.writeFile(
-        wb,
-        `user_associations_${new Date().toISOString().slice(0, 10)}.xlsx`
-      );
-    } catch (error) {
-      console.error("Error exporting to Excel:", error);
-      alert("Error exporting to Excel. Falling back to CSV export.");
-      exportToCSV();
-    }
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
-  // Pagination
+  // Paginated data
   const paginatedData = useMemo(() => {
-    const startIndex = paginationModel.page * paginationModel.pageSize;
-    const endIndex = startIndex + paginationModel.pageSize;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, paginationModel]);
+    return sortedData.slice(
+      page * rowsPerPage,
+      page * rowsPerPage + rowsPerPage
+    );
+  }, [sortedData, page, rowsPerPage]);
+
+  // Check if any column has an active filter
+  const hasActiveFilters = Object.values(columnFilters).some(
+    (value) => value !== ""
+  );
 
   return (
-    <Box sx={{ width: "100%" }}>
+    <div className="user-association-container">
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          mb: 3,
         }}
       >
-        <Typography variant="h5" display="flex" alignItems="center">
-          <Users style={{ marginRight: "8px" }} />
-          Operator–Incubatee Associations list
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{ display: "flex", alignItems: "center" }}
+        >
+          <FaUsers style={{ marginRight: "8px" }} />
+          Operator–Incubatee Associations
         </Typography>
-        <Box sx={{ display: "flex", gap: 1 }}>
-          {/* <Button
-            variant="contained"
-            startIcon={<Plus size={16} />}
-            onClick={() => setShowNewAssociationModal(true)}
-          >
-            New Association
-          </Button> */}
-          <Button
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <TextField
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <FaSearch />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchQuery("")}>
+                    <FaTimes size={14} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
             variant="outlined"
-            startIcon={<Download size={16} />}
-            onClick={exportToCSV}
-            title="Export as CSV"
-          >
-            Export CSV
+            size="small"
+          />
+          <Button variant="outlined" startIcon={<FaFileCsv />}>
+            <CSVLink
+              data={exportData}
+              filename="Operator_Associations.csv"
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              Export CSV
+            </CSVLink>
           </Button>
           <Button
             variant="outlined"
-            startIcon={<Download size={16} />}
-            onClick={exportToExcel}
-            title="Export as Excel"
-            disabled={!isXLSXAvailable}
+            startIcon={<FaFileExcel />}
+            onClick={handleExportExcel}
           >
             Export Excel
           </Button>
@@ -895,182 +738,356 @@ export default function UserAssociationTable() {
       </Box>
 
       {error && (
-        <Box
-          p={2}
-          bgcolor="error.main"
-          color="error.contrastText"
-          borderRadius={1}
-          mb={2}
-        >
-          {error}
+        <Box sx={{ mb: 2 }}>
+          <Typography color="error">{error}</Typography>
         </Box>
       )}
 
-      {/* Search Section */}
-      <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
-        <TextField
-          label="Search by name..."
-          variant="outlined"
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ minWidth: 250 }}
-          InputProps={{
-            startAdornment: <Search size={16} style={{ marginRight: 8 }} />,
-          }}
-        />
-
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel id="items-per-page-label">Items per page</InputLabel>
-          <Select
-            labelId="items-per-page-label"
-            value={paginationModel.pageSize}
-            onChange={(e) =>
-              setPaginationModel({
-                ...paginationModel,
-                pageSize: Number(e.target.value),
-                page: 0,
-              })
-            }
-            label="Items per page"
-          >
-            <MenuItem value={5}>5 per page</MenuItem>
-            <MenuItem value={10}>10 per page</MenuItem>
-            <MenuItem value={25}>25 per page</MenuItem>
-            <MenuItem value={50}>50 per page</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Results Info */}
-      <Box sx={{ mb: 1, color: "text.secondary" }}>
-        Showing {paginationModel.page * paginationModel.pageSize + 1} to{" "}
-        {Math.min(
-          (paginationModel.page + 1) * paginationModel.pageSize,
-          filteredData.length
-        )}{" "}
-        of {filteredData.length} entries
-      </Box>
-
-      {/* Table with Grouping */}
-      <StyledPaper>
-        {loading ? (
-          <Box display="flex" justifyContent="center" p={4}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <TableContainer>
-            <Table aria-label="collapsible table">
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <Typography>Loading user associations...</Typography>
+        </Box>
+      ) : (
+        <Paper elevation={2} sx={{ width: "100%", overflow: "hidden" }}>
+          <TableContainer sx={{ maxHeight: 800 }}>
+            <Table stickyHeader aria-label="sticky table">
               <TableHead>
                 <TableRow>
-                  <TableCell />
-                  <TableCell>Name</TableCell>
-                  <TableCell>Created By</TableCell>
-                  <TableCell>Companies</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Name</Typography>
+                      <Tooltip title="Sort">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleSort("usersname")}
+                        >
+                          {getSortIcon("usersname")}
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Filter">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleFilterClick(e, "usersname")}
+                          color={
+                            columnFilters.usersname ? "primary" : "default"
+                          }
+                        >
+                          <FaFilter size={14} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Created By</Typography>
+                      <Tooltip title="Sort">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleSort("userscreatedby")}
+                        >
+                          {getSortIcon("userscreatedby")}
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Filter">
+                        <IconButton
+                          size="small"
+                          onClick={(e) =>
+                            handleFilterClick(e, "userscreatedby")
+                          }
+                          color={
+                            columnFilters.userscreatedby ? "primary" : "default"
+                          }
+                        >
+                          <FaFilter size={14} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Companies</Typography>
+                      <Tooltip title="Filter">
+                        <IconButton
+                          size="small"
+                          onClick={(e) =>
+                            handleFilterClick(e, "incubateesname")
+                          }
+                          color={
+                            columnFilters.incubateesname ? "primary" : "default"
+                          }
+                        >
+                          <FaFilter size={14} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Associated By</Typography>
+                      <Tooltip title="Filter">
+                        <IconButton
+                          size="small"
+                          onClick={(e) =>
+                            handleFilterClick(e, "usrincassncreatedbyname")
+                          }
+                          color={
+                            columnFilters.usrincassncreatedbyname
+                              ? "primary"
+                              : "default"
+                          }
+                        >
+                          <FaFilter size={14} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Typography>Actions</Typography>
+                      {hasActiveFilters && (
+                        <Tooltip title="Clear all filters">
+                          <IconButton size="small" onClick={clearAllFilters}>
+                            <FaTimes />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedData.map((row) => (
-                  <GroupedRow
-                    key={row.id}
-                    row={row}
-                    isExpanded={expandedRows.includes(row.id)}
-                    onToggle={handleToggleRow}
-                    onDelete={handleDelete}
-                    onEdit={startEditing}
-                  />
-                ))}
+                {paginatedData.map((user) => {
+                  const hasAssociations = user.associations.length > 0;
+                  const rowCount = Math.max(1, user.associations.length);
+
+                  return (
+                    <React.Fragment key={user.usersrecid}>
+                      {Array.from({ length: rowCount }).map((_, index) => (
+                        <TableRow
+                          key={`${user.usersrecid}-${index}`}
+                          hover
+                          role="checkbox"
+                          tabIndex={-1}
+                        >
+                          {index === 0 ? (
+                            <>
+                              <TableCell
+                                rowSpan={rowCount}
+                                sx={{
+                                  verticalAlign: "middle",
+                                  textAlign: "center",
+                                  borderRight:
+                                    "1px solid rgba(224, 224, 224, 1)",
+                                  padding: "16px",
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Typography
+                                    variant="body1"
+                                    fontWeight="medium"
+                                  >
+                                    {user.usersname}
+                                  </Typography>
+                                  <Tooltip title="Edit associations">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => startEditing(user)}
+                                    >
+                                      <FaEdit size={16} />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
+                              </TableCell>
+                              <TableCell
+                                rowSpan={rowCount}
+                                sx={{
+                                  verticalAlign: "middle",
+                                  textAlign: "center",
+                                  borderRight:
+                                    "1px solid rgba(224, 224, 224, 1)",
+                                  padding: "16px",
+                                }}
+                              >
+                                {user.userscreatedby}
+                              </TableCell>
+                            </>
+                          ) : null}
+
+                          {hasAssociations ? (
+                            <>
+                              <TableCell>
+                                <Box>
+                                  <Typography variant="body2">
+                                    {user.associations[index].incubateesname}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="textSecondary"
+                                  >
+                                    {formatDate(
+                                      user.associations[index]
+                                        .usrincassncreatedtime
+                                    )}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                {user.associations[index]
+                                  .usrincassncreatedbyname || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                <Tooltip title="Remove association">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() =>
+                                      handleDelete(
+                                        user.associations[index].usrincassnrecid
+                                      )
+                                    }
+                                    disabled={isDeleting}
+                                  >
+                                    {isDeleting ? (
+                                      <FaSpinner
+                                        className="spinner"
+                                        size={14}
+                                      />
+                                    ) : (
+                                      <FaTrash size={14} />
+                                    )}
+                                  </IconButton>
+                                </Tooltip>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <TableCell colSpan={3}>
+                              <Typography color="textSecondary">
+                                No companies associated
+                              </Typography>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
-        )}
-      </StyledPaper>
+          <TablePagination
+            rowsPerPageOptions={[10, 25, 50, 100]}
+            component="div"
+            count={sortedData.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
+      )}
 
-      {/* Pagination Controls */}
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-        <Button
-          disabled={paginationModel.page === 0}
-          onClick={() =>
-            setPaginationModel({
-              ...paginationModel,
-              page: paginationModel.page - 1,
-            })
-          }
-        >
-          Previous
-        </Button>
-        <Typography sx={{ mx: 2 }}>
-          Page {paginationModel.page + 1} of{" "}
-          {Math.ceil(filteredData.length / paginationModel.pageSize)}
-        </Typography>
-        <Button
-          disabled={
-            paginationModel.page >=
-            Math.ceil(filteredData.length / paginationModel.pageSize) - 1
-          }
-          onClick={() =>
-            setPaginationModel({
-              ...paginationModel,
-              page: paginationModel.page + 1,
-            })
-          }
-        >
-          Next
-        </Button>
-      </Box>
-
-      {filteredData.length === 0 && !loading && (
-        <Box sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
-          {searchTerm
-            ? "No users found matching your search"
-            : "No users found"}
+      {sortedData.length === 0 && (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <Typography color="textSecondary">
+            {searchQuery || hasActiveFilters
+              ? "No users found matching your filters"
+              : "No users found"}
+          </Typography>
         </Box>
       )}
 
+      {/* Filter Popover */}
+      <Popover
+        open={Boolean(filterAnchorEl)}
+        anchorEl={filterAnchorEl}
+        onClose={handleFilterClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+      >
+        <Card sx={{ minWidth: 280, maxWidth: 400 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Filter by {filterColumn === "usersname" && "Name"}
+              {filterColumn === "userscreatedby" && "Created By"}
+              {filterColumn === "incubateesname" && "Companies"}
+              {filterColumn === "usrincassncreatedbyname" && "Associated By"}
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder={`Enter ${filterColumn === "usersname" && "name"}
+                ${filterColumn === "userscreatedby" && "created by"}
+                ${filterColumn === "incubateesname" && "company"}
+                ${
+                  filterColumn === "usrincassncreatedbyname" && "associated by"
+                }...`}
+              value={columnFilters[filterColumn] || ""}
+              onChange={(e) => handleFilterChange(filterColumn, e.target.value)}
+              variant="outlined"
+              margin="normal"
+            />
+          </CardContent>
+          <CardActions sx={{ justifyContent: "flex-end" }}>
+            <Button size="small" onClick={clearFilter}>
+              Clear
+            </Button>
+            <Button size="small" onClick={handleFilterClose}>
+              Close
+            </Button>
+          </CardActions>
+        </Card>
+      </Popover>
+
       {/* Edit Modal */}
       <Dialog
-        open={!!editingUserId}
+        open={Boolean(editingUserId)}
         onClose={cancelEditing}
         maxWidth="md"
         fullWidth
       >
         <DialogTitle>Edit User Associations</DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <Typography variant="h6" gutterBottom>
-              Select Incubatees:
-            </Typography>
-            <Box
-              sx={{
-                maxHeight: 300,
-                overflow: "auto",
-                border: 1,
-                borderColor: "divider",
-                borderRadius: 1,
-                p: 1,
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {incubatees.map((incubatee) => (
-                <FormControlLabel
-                  key={incubatee.incubateesrecid}
-                  control={
-                    <Checkbox
-                      checked={selectedIncubatees.includes(
-                        incubatee.incubateesrecid
-                      )}
-                      onChange={() =>
-                        handleCheckboxChange(incubatee.incubateesrecid)
-                      }
-                      disabled={updateLoading}
-                    />
-                  }
-                  label={incubatee.incubateesname}
-                />
-              ))}
-            </Box>
+          <Typography variant="subtitle1" sx={{ mb: 2 }}>
+            Select Incubatees:
+          </Typography>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+              gap: 1,
+              maxHeight: 300,
+              overflow: "auto",
+            }}
+          >
+            {incubatees.map((incubatee) => (
+              <FormControlLabel
+                key={incubatee.incubateesrecid}
+                control={
+                  <Checkbox
+                    checked={selectedIncubatees.includes(
+                      incubatee.incubateesrecid
+                    )}
+                    onChange={() =>
+                      handleCheckboxChange(incubatee.incubateesrecid)
+                    }
+                    disabled={updateLoading}
+                  />
+                }
+                label={incubatee.incubateesname}
+              />
+            ))}
           </Box>
         </DialogContent>
         <DialogActions>
@@ -1081,97 +1098,14 @@ export default function UserAssociationTable() {
             onClick={updateAssociations}
             variant="contained"
             disabled={updateLoading}
-            startIcon={updateLoading ? <CircularProgress size={16} /> : null}
+            startIcon={
+              updateLoading && <FaSpinner className="spinner" size={14} />
+            }
           >
             {updateLoading ? "Updating..." : "Save Changes"}
           </Button>
         </DialogActions>
-        {updateLoading && (
-          <LoadingOverlay>
-            <CircularProgress />
-          </LoadingOverlay>
-        )}
       </Dialog>
-
-      {/* New Association Modal */}
-      <Dialog
-        open={showNewAssociationModal}
-        onClose={cancelNewAssociation}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Associate New Operator</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 1 }}>
-            <FormControl fullWidth margin="normal">
-              <InputLabel id="user-select-label">Select User</InputLabel>
-              <Select
-                labelId="user-select-label"
-                value={selectedUser}
-                onChange={handleUserChange}
-                disabled={updateLoading}
-              >
-                <MenuItem value="">-- Select User --</MenuItem>
-                {users.map((user) => (
-                  <MenuItem key={user.usersrecid} value={user.usersrecid}>
-                    {user.usersname}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Typography variant="h6" gutterBottom>
-              Select Incubatees:
-            </Typography>
-            <Box
-              sx={{
-                maxHeight: 300,
-                overflow: "auto",
-                border: 1,
-                borderColor: "divider",
-                borderRadius: 1,
-                p: 1,
-              }}
-            >
-              {incubatees.map((incubatee) => (
-                <FormControlLabel
-                  key={incubatee.incubateesrecid}
-                  control={
-                    <Checkbox
-                      checked={selectedIncubateesForNew.includes(
-                        incubatee.incubateesrecid
-                      )}
-                      onChange={() =>
-                        handleNewCheckboxChange(incubatee.incubateesrecid)
-                      }
-                      disabled={updateLoading}
-                    />
-                  }
-                  label={incubatee.incubateesname}
-                />
-              ))}
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelNewAssociation} disabled={updateLoading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={createNewAssociation}
-            variant="contained"
-            disabled={updateLoading}
-            startIcon={updateLoading ? <CircularProgress size={16} /> : null}
-          >
-            {updateLoading ? "Creating..." : "Create Association"}
-          </Button>
-        </DialogActions>
-        {updateLoading && (
-          <LoadingOverlay>
-            <CircularProgress />
-          </LoadingOverlay>
-        )}
-      </Dialog>
-    </Box>
+    </div>
   );
 }

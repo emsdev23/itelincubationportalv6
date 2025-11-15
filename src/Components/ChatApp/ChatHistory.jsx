@@ -14,6 +14,7 @@ import "./ChatHistory.css";
 import { useNavigate } from "react-router-dom";
 import ITELLogo from "../../assets/ITEL_Logo.png";
 import { IPAdress } from "../Datafetching/IPAdrees";
+import api from "../Datafetching/api";
 import * as XLSX from "xlsx";
 
 // Material UI imports
@@ -185,14 +186,9 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
   // Function to get file URL from API
   const getFileUrl = async (path) => {
     try {
-      const response = await fetch(
+      const response = await api.post(
         `${IPAdress}/itelinc/resources/generic/getfileurl`,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          },
           body: JSON.stringify({
             userid: currentUser.id,
             incUserId: currentUser.incUserid,
@@ -250,6 +246,7 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
         const response = await fetch(fileUrl, {
           headers: {
             Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+            userid: currentUser.id,
           },
         });
 
@@ -317,6 +314,7 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
           const response = await fetch(message.chatdetailsattachmentpath, {
             headers: {
               Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+              userid: currentUser.id,
             },
           });
 
@@ -718,47 +716,8 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
               >
                 Export Excel
               </Button>
-              <IconButton
-                onClick={(e) => setAnchorEl(e.currentTarget)}
-                title="Column Alignment"
-              >
-                <MoreVertIcon />
-              </IconButton>
             </Box>
           </Box>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-          >
-            <MenuItem disabled>Column Alignment</MenuItem>
-            {Object.keys(columnAlignment).map((column) => (
-              <MenuItem key={column}>
-                <Typography variant="body2" sx={{ mr: 2 }}>
-                  {column === "chatlistsubject" && "Subject"}
-                  {column === "chatdetailsfromusername" && "From"}
-                  {column === "chatdetailstousername" && "To"}
-                  {column === "chatdetailsmessage" && "Message"}
-                  {column === "chatdetailscreatedtime" && "Date"}
-                  {column === "chatlistchatstate" && "Status"}
-                  {column === "chatdetailsattachmentpath" && "Attachment"}
-                </Typography>
-                <FormControl size="small" sx={{ minWidth: 100 }}>
-                  <Select
-                    value={columnAlignment[column]}
-                    onChange={(e) =>
-                      handleAlignmentChange(column, e.target.value)
-                    }
-                  >
-                    <MenuItem value="left">Left</MenuItem>
-                    <MenuItem value="center">Center</MenuItem>
-                    <MenuItem value="right">Right</MenuItem>
-                  </Select>
-                </FormControl>
-              </MenuItem>
-            ))}
-          </Menu>
 
           <Box sx={{ mb: 2 }}>
             <TextField

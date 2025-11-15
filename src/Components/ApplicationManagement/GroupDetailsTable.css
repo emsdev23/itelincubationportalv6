@@ -1,0 +1,260 @@
+/* --- KEY CHANGE: Force ALL table cells to wrap text and prevent truncation --- */
+.doccat-table.doccat-table td {
+  white-space: normal !important; /* Force text to wrap */
+  word-wrap: break-word !important; /* Break long strings */
+  word-break: break-word !important; /* More robust breaking */
+  text-overflow: clip !important; /* Explicitly prevent ellipsis */
+  overflow: visible !important; /* Ensure content is not hidden */
+  max-width: none !important; /* Remove any max-width constraints */
+}
+
+/* --- General Layout & Container Styles --- */
+
+.doccat-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.doccat-table-wrapper {
+  overflow-x: auto; /* Allow horizontal scrolling if content is too wide */
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.doccat-table {
+  width: 100%;
+  table-layout: auto; /* Allow columns to size based on content */
+  border-collapse: collapse;
+  min-width: 800px; /* Ensure a minimum width for the table */
+}
+
+.doccat-table th,
+.doccat-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top; /* Align text to the top for better readability when wrapped */
+}
+
+.doccat-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* --- Header & Search Styles --- */
+
+.doccat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.doccat-title {
+  margin: 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.search-container {
+  position: relative;
+  width: 300px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: #6c757d;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 35px 8px 35px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #6c757d;
+}
+
+/* --- Sort Icon Styles --- */
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-icon {
+  margin-left: 5px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.sort-icon.active {
+  color: #007bff;
+}
+
+/* --- Status Badge Styles --- */
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap; /* Keep badges on one line */
+}
+
+.status-enabled {
+  background-color: #e6f7e6;
+  color: #28a745;
+}
+
+.status-disabled {
+  background-color: #f8f8f8;
+  color: #6c757d;
+}
+
+/* --- Pagination Styles --- */
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.items-per-page-select {
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  margin-left: 10px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+}
+
+.pagination-btn {
+  padding: 5px 10px;
+  margin: 0 2px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  cursor: pointer;
+  border-radius: 4px;
+  min-width: 38px;
+}
+
+.pagination-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.pagination-btn.active {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
+.pagination-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Utility Styles --- */
+
+.doccat-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+}
+
+.error-message {
+  padding: 10px 15px;
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.table-info {
+  margin-bottom: 10px;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+/* --- Description Cell Styles --- */
+
+.description-cell {
+  max-width: 400px;
+  min-width: 250px;
+}
+
+/* --- Add these new styles to your existing GroupDetailsTable.css --- */
+
+/* Style for the clickable group name */
+.clickable-group-name {
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.clickable-group-name:hover {
+  color: #0056b3;
+}
+
+/* Container for the detail section to add some space */
+.detail-section {
+  margin-top: 40px;
+  border-top: 2px solid #eee;
+  padding-top: 20px;
+}
+
+/* Specific styling for the detail table's container */
+.detail-table-container {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.detail-table-container .doccat-title {
+  color: #495057;
+}

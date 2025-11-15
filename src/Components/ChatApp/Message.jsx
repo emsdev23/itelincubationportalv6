@@ -7,8 +7,7 @@ const Message = ({
   message,
   currentUser,
   onReply,
-  isPublicReplyChat,
-  isPrivateReplyChat,
+  onMessageRead, // <-- THIS PROP IS NOW EXPECTED
   allMessages,
 }) => {
   const isOwnMessage = message.chatdetailsfrom == currentUser.id;
@@ -20,6 +19,62 @@ const Message = ({
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [isMarkingAsRead, setIsMarkingAsRead] = useState(false);
+
+  // Function to mark message as read
+  const markMessageAsRead = async () => {
+    // IMPORTANT: This API call should ONLY be made by the recipient of the message.
+    // The sender doesn't need to mark their own message as "read".
+    if (
+      message.chatdetailsto == currentUser.id && // Check if the current user is the recipient
+      message.chatdetailsreadstatus === 1 && // Check if the message is currently unread
+      !isMarkingAsRead // Prevent duplicate API calls
+    ) {
+      setIsMarkingAsRead(true);
+
+      try {
+        const response = await fetch(
+          `${IPAdress}/itelinc/resources/chat/markread`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+              userid: currentUser.id,
+              "X-Module": "Chat Module",
+              "X-Action": "Marking message as read",
+            },
+            body: JSON.stringify({
+              messageId: message.chatdetailsrecid,
+              chatdetailslistid: message.chatdetailslistid,
+              chatdetailstypeid: message.chatdetailstypeid,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to mark message as read");
+        }
+
+        // After a successful API call, update the local state to reflect the change immediately.
+        // This provides instant UI feedback to the recipient.
+        if (onMessageRead) {
+          onMessageRead(message.chatdetailsrecid);
+        }
+      } catch (error) {
+        console.error("Error marking message as read:", error);
+      } finally {
+        setIsMarkingAsRead(false);
+      }
+    }
+  };
+
+  // This effect runs once when the message component mounts.
+  // It triggers the "mark as read" logic if the user is the recipient.
+  useEffect(() => {
+    markMessageAsRead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message.chatdetailsrecid]); // Only re-run if the message ID itself changes.
 
   const formatTime = (timeString) => {
     const date = new Date(timeString);
@@ -29,7 +84,6 @@ const Message = ({
     });
   };
 
-  // Helper function to generate a filename with datetime
   const generateFilenameWithDateTime = (originalFileName) => {
     const now = new Date();
     const dateTimeString = now
@@ -37,7 +91,6 @@ const Message = ({
       .replace(/:/g, "-")
       .replace(/\..+/, "");
 
-    // Extract file extension if present
     const lastDotIndex = originalFileName.lastIndexOf(".");
     const nameWithoutExtension =
       lastDotIndex > 0
@@ -66,7 +119,6 @@ const Message = ({
     }
   }, [isReply, message.chatdetailsreplyfor, allMessages]);
 
-  // Process attachment data to handle the new structure with a separate filename field
   useEffect(() => {
     if (hasAttachment) {
       processAttachment();
@@ -76,16 +128,14 @@ const Message = ({
   const processAttachment = () => {
     try {
       const attachmentData = message.chatdetailsattachmentpath;
-      const fileName = message.chatdetailsfilename; // Use chatdetailsfilename from API response
+      const fileName = message.chatdetailsfilename;
 
-      // Check if the attachment is a URL path (not base64)
       const isUrlPath =
         attachmentData &&
         !attachmentData.startsWith("http") &&
         !attachmentData.startsWith("data:") &&
         attachmentData.includes("/");
 
-      // Check if the attachment is a base64 string
       const isBase64 =
         attachmentData &&
         !attachmentData.startsWith("http") &&
@@ -94,14 +144,12 @@ const Message = ({
         attachmentData.length > 100;
 
       if (isUrlPath) {
-        // This is a URL path that needs to be resolved via API
         setAttachmentInfo({
           isUrlPath: true,
           path: attachmentData,
           fileName: fileName || "attachment",
         });
       } else if (isBase64) {
-        // This is base64 data (legacy support)
         let mimeType = "application/octet-stream";
         let fileExtension = "bin";
 
@@ -122,7 +170,6 @@ const Message = ({
           fileExtension = "zip";
         }
 
-        // Use the provided filename if available, otherwise generate one
         const displayName = fileName || `attachment.${fileExtension}`;
 
         setAttachmentInfo({
@@ -132,7 +179,6 @@ const Message = ({
           data: attachmentData,
         });
       } else {
-        // Regular URL attachment
         setAttachmentInfo({
           isUrl: true,
           url: attachmentData,
@@ -145,7 +191,6 @@ const Message = ({
     }
   };
 
-  // Function to get file URL from API
   const getFileUrl = async (path) => {
     try {
       const response = await fetch(
@@ -155,6 +200,9 @@ const Message = ({
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+            userid: currentUser.id,
+            "X-Module": "Chat Module",
+            "X-Action": "Fatching document preview",
           },
           body: JSON.stringify({
             userid: currentUser.id,
@@ -169,38 +217,30 @@ const Message = ({
       }
 
       const data = await response.json();
-      return data.data; // Return the URL from the response
+      return data.data;
     } catch (error) {
       console.error("Error getting file URL:", error);
       throw error;
     }
   };
 
-  // Function to view attachment in a new tab
   const viewAttachment = async () => {
     if (!attachmentInfo) return;
-
     try {
       if (attachmentInfo.isUrlPath) {
-        // Get the file URL from API
         const fileUrl = await getFileUrl(attachmentInfo.path);
-        // Open in a new tab
         window.open(fileUrl, "_blank");
       } else if (attachmentInfo.isBase64) {
-        // Create a data URL and open in a new tab
         const dataUrl = `data:${attachmentInfo.mimeType};base64,${attachmentInfo.data}`;
         window.open(dataUrl, "_blank");
       } else if (attachmentInfo.isUrl) {
-        // Handle direct URL
         window.open(attachmentInfo.url, "_blank");
       }
     } catch (error) {
       console.error("Error viewing attachment:", error);
-      // You could show an error message to the user here
     }
   };
 
-  // Function to preview attachment in chat
   const previewAttachment = async () => {
     if (!attachmentInfo) return;
 
@@ -211,38 +251,21 @@ const Message = ({
       let content = null;
 
       if (attachmentInfo.isUrlPath) {
-        // Get the file URL from API
         const fileUrl = await getFileUrl(attachmentInfo.path);
 
-        // For images, create an img element
         if (isImageFile(attachmentInfo.fileName)) {
-          content = {
-            type: "image",
-            url: fileUrl,
-          };
-        }
-        // For PDFs, create an iframe
-        else if (isPdfFile(attachmentInfo.fileName)) {
-          content = {
-            type: "pdf",
-            url: fileUrl,
-          };
-        }
-        // For text files, fetch and display content
-        else if (isTextFile(attachmentInfo.fileName)) {
+          content = { type: "image", url: fileUrl };
+        } else if (isPdfFile(attachmentInfo.fileName)) {
+          content = { type: "pdf", url: fileUrl };
+        } else if (isTextFile(attachmentInfo.fileName)) {
           const response = await fetch(fileUrl, {
             headers: {
               Authorization: `Bearer ${sessionStorage.getItem("token")}`,
             },
           });
           const text = await response.text();
-          content = {
-            type: "text",
-            content: text,
-          };
-        }
-        // For other files, just show file info
-        else {
+          content = { type: "text", content: text };
+        } else {
           content = {
             type: "file",
             url: fileUrl,
@@ -250,7 +273,6 @@ const Message = ({
           };
         }
       } else if (attachmentInfo.isBase64) {
-        // Handle base64 data
         if (attachmentInfo.mimeType.startsWith("image/")) {
           content = {
             type: "image",
@@ -262,24 +284,13 @@ const Message = ({
             dataUrl: `data:${attachmentInfo.mimeType};base64,${attachmentInfo.data}`,
           };
         } else {
-          // For other base64 files, just show file info
-          content = {
-            type: "file",
-            fileName: attachmentInfo.fileName,
-          };
+          content = { type: "file", fileName: attachmentInfo.fileName };
         }
       } else if (attachmentInfo.isUrl) {
-        // Handle direct URL
         if (isImageFile(attachmentInfo.fileName)) {
-          content = {
-            type: "image",
-            url: attachmentInfo.url,
-          };
+          content = { type: "image", url: attachmentInfo.url };
         } else if (isPdfFile(attachmentInfo.fileName)) {
-          content = {
-            type: "pdf",
-            url: attachmentInfo.url,
-          };
+          content = { type: "pdf", url: attachmentInfo.url };
         } else {
           content = {
             type: "file",
@@ -301,7 +312,6 @@ const Message = ({
     }
   };
 
-  // Helper functions to check file types
   const isImageFile = (fileName) => {
     const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"];
     const extension = fileName
@@ -337,16 +347,12 @@ const Message = ({
     setIsDownloading(true);
 
     try {
-      // Use the filename from the API response with datetime
       const downloadFileName = generateFilenameWithDateTime(
         attachmentInfo.fileName
       );
 
       if (attachmentInfo.isUrlPath) {
-        // Get the file URL from API
         const fileUrl = await getFileUrl(attachmentInfo.path);
-
-        // Fetch the file content
         const response = await fetch(fileUrl, {
           headers: {
             Authorization: `Bearer ${sessionStorage.getItem("token")}`,
@@ -357,24 +363,16 @@ const Message = ({
           throw new Error("Failed to fetch file");
         }
 
-        // Get the blob from the response
         const blob = await response.blob();
-
-        // Create a URL for the blob
         const blobUrl = URL.createObjectURL(blob);
-
-        // Create a link and trigger download
         const link = document.createElement("a");
         link.href = blobUrl;
         link.download = downloadFileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-
-        // Clean up the blob URL
         URL.revokeObjectURL(blobUrl);
       } else if (attachmentInfo.isBase64) {
-        // Handle base64 data (legacy support)
         const byteCharacters = atob(attachmentInfo.data);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -392,9 +390,7 @@ const Message = ({
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       } else if (attachmentInfo.isUrl) {
-        // For direct URLs, we also need to fetch the content first
         try {
-          // Fetch the file content
           const response = await fetch(attachmentInfo.url, {
             headers: {
               Authorization: `Bearer ${sessionStorage.getItem("token")}`,
@@ -405,24 +401,16 @@ const Message = ({
             throw new Error("Failed to fetch file");
           }
 
-          // Get the blob from the response
           const blob = await response.blob();
-
-          // Create a URL for the blob
           const blobUrl = URL.createObjectURL(blob);
-
-          // Create a link and trigger download
           const link = document.createElement("a");
           link.href = blobUrl;
           link.download = downloadFileName;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-
-          // Clean up the blob URL
           URL.revokeObjectURL(blobUrl);
         } catch (fetchError) {
-          // If fetching fails, fall back to the original method
           console.warn(
             "Could not fetch file content, falling back to direct download:",
             fetchError
@@ -437,13 +425,11 @@ const Message = ({
       }
     } catch (error) {
       console.error("Error downloading attachment:", error);
-      // You could show an error message to the user here
     } finally {
       setIsDownloading(false);
     }
   };
 
-  // Get file type icon based on MIME type or file extension
   const getFileTypeIcon = (mimeType, fileName) => {
     if (mimeType.startsWith("image/")) {
       return "🖼️";
@@ -477,7 +463,6 @@ const Message = ({
     }
   };
 
-  // Get file type text based on MIME type or file extension
   const getFileTypeText = (mimeType, fileName) => {
     if (mimeType.startsWith("image/")) {
       return "IMAGE";
@@ -518,7 +503,6 @@ const Message = ({
       attachmentInfo.isBase64 &&
       attachmentInfo.mimeType.startsWith("image/")
     ) {
-      // For base64 images, show preview
       const dataUrl = `data:${attachmentInfo.mimeType};base64,${attachmentInfo.data}`;
 
       return (
@@ -532,7 +516,6 @@ const Message = ({
         </div>
       );
     } else {
-      // For all other files, show WhatsApp-style file preview
       const fileIcon = getFileTypeIcon(
         attachmentInfo.mimeType || "",
         attachmentInfo.fileName
@@ -656,6 +639,21 @@ const Message = ({
         <span className="message-time">
           {formatTime(message.chatdetailscreatedtime)}
         </span>
+
+        {/* --- UPDATED TICK INDICATOR --- */}
+        {isOwnMessage && (
+          <span className="read-status">
+            {message.chatdetailsreadstatus === 1 ? (
+              <span className="tick-single" title="Sent">
+                ✓
+              </span>
+            ) : (
+              <span className="tick-double tick-blue" title="Read">
+                ✓✓
+              </span>
+            )}
+          </span>
+        )}
 
         {!isOwnMessage && onReply && (
           <button className="reply-btn" onClick={handleReplyClick}>

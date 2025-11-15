@@ -11,7 +11,7 @@ import { HiLink } from "react-icons/hi";
 import { Link } from "react-router-dom";
 import Spinner from "../../Components/Spinner";
 import style from "../Navbar.module.css";
-import { Download } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 import {
   CheckCircle,
   Clock,
@@ -29,6 +29,7 @@ import {
   CircleUserRound,
   Mail,
   MessageSquare,
+  Plus,
 } from "lucide-react";
 import ITELLogo from "../../assets/ITEL_Logo.png";
 import * as XLSX from "xlsx";
@@ -38,6 +39,8 @@ import ChangePasswordModal from "./ChangePasswordModal";
 import ContactModal from "./ContactModal";
 import DocumentsTable from "../DocumentUpload/DocumentsTable";
 import { IPAdress } from "../Datafetching/IPAdrees";
+import AuditLogsModal from "../AuditLogsModal ";
+import ShareDocumentModal from "./ShareDocumentModal";
 
 // Material UI imports
 import { DataGrid } from "@mui/x-data-grid";
@@ -148,6 +151,16 @@ const StartupDashboard = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  // Share modal state
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+
+  // New states for document categories, subcategories, and info
+  const [documentCategories, setDocumentCategories] = useState([]);
+  const [documentSubcategories, setDocumentSubcategories] = useState([]);
+  const [documentInfo, setDocumentInfo] = useState([]);
+  const [isLoadingDocData, setIsLoadingDocData] = useState(false);
+
   // Sorting state for documents table
   const [sortModel, setSortModel] = useState([
     {
@@ -176,6 +189,144 @@ const StartupDashboard = () => {
       navigate("/Incubation/Dashboard");
     }
   }, [stateUsersRecid, setadminviewData, roleid, adminviewData, navigate]);
+
+  // Function to fetch document categories
+  const fetchDocumentCategories = async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const userId = sessionStorage.getItem("userid");
+      const incUserId = sessionStorage.getItem("incuserid");
+
+      const response = await fetch(
+        `${IPAdress}/itelinc/resources/generic/getdoccat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId: userId,
+            roleId: roleid || 0,
+            userIncId: incUserId || 1,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.statusCode === 200) {
+        setDocumentCategories(data.data);
+        return data.data;
+      } else {
+        throw new Error(data.message || "Failed to fetch document categories");
+      }
+    } catch (error) {
+      console.error("Error fetching document categories:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to fetch document categories: " + error.message,
+      });
+      return [];
+    }
+  };
+
+  // Function to fetch document subcategories
+  const fetchDocumentSubcategories = async (docCatId) => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const userId = sessionStorage.getItem("userid");
+      const incUserId = sessionStorage.getItem("incuserid");
+
+      const response = await fetch(
+        `${IPAdress}/itelinc/resources/generic/getdocsubcat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userid: userId,
+            docid: docCatId,
+            userIncId: incUserId || 1,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.statusCode === 200) {
+        setDocumentSubcategories(data.data);
+        return data.data;
+      } else {
+        throw new Error(
+          data.message || "Failed to fetch document subcategories"
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching document subcategories:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to fetch document subcategories: " + error.message,
+      });
+      return [];
+    }
+  };
+
+  // Function to fetch document info
+  const fetchDocumentInfo = async (docCatId, docSubCatId) => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const userId = sessionStorage.getItem("userid");
+      const incUserId = sessionStorage.getItem("incuserid");
+
+      const response = await fetch(
+        `${IPAdress}/itelinc/resources/generic/getdocinfo`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userid: userId,
+            doccatid: docCatId,
+            docsubcatid: docSubCatId,
+            userIncId: incUserId || 1,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.statusCode === 200) {
+        setDocumentInfo(data.data);
+        return data.data;
+      } else {
+        throw new Error(data.message || "Failed to fetch document info");
+      }
+    } catch (error) {
+      console.error("Error fetching document info:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to fetch document info: " + error.message,
+      });
+      return [];
+    }
+  };
 
   // Determine which data to use based on role and admin viewing state
   const getIncubateeData = () => {
@@ -225,15 +376,19 @@ const StartupDashboard = () => {
   const incubateeslogopath = incubatee?.incubateeslogopath;
   const incubateeswebsite = incubatee?.incubateeswebsite;
   const userRecID = incubatee?.usersrecid;
-
-  const Title = selectedIncubation.incubationshortname;
-  console.log(Title);
+  const token = sessionStorage.getItem("token");
+  const Title =
+    selectedIncubation !== null
+      ? selectedIncubation.incubationshortname
+      : "Startup Dashboard";
 
   // Local state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [localCompanyDoc, setLocalCompanyDoc] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
 
   // Filter and pagination state
   const [searchTerm, setSearchTerm] = useState("");
@@ -414,6 +569,9 @@ const StartupDashboard = () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: userid || "1",
+            "X-Module": "Incubatee Documents",
+            "X-Action": "Fetching Company Documents",
           },
           body: JSON.stringify({
             userid: userid,
@@ -507,6 +665,9 @@ const StartupDashboard = () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: userid || "1",
+            "X-Module": "Incubatee Documents",
+            "X-Action": "Incubatee Document Preview",
           },
           body: JSON.stringify({
             userid: userid,
@@ -565,6 +726,76 @@ const StartupDashboard = () => {
     }
   };
 
+  // Modified function to handle opening the modal with pre-filled data
+  const handleAddDocument = async (document) => {
+    setIsLoadingDocData(true);
+
+    try {
+      // First, fetch all document categories
+      const categories = await fetchDocumentCategories();
+
+      // Find the category ID that matches the document's category name
+      const matchingCategory = categories.find(
+        (cat) => cat.text === document.doccatname
+      );
+
+      if (!matchingCategory) {
+        throw new Error(`Category "${document.doccatname}" not found`);
+      }
+
+      // Then, fetch subcategories for this category
+      const subcategories = await fetchDocumentSubcategories(
+        matchingCategory.value
+      );
+
+      // Find the subcategory ID that matches the document's subcategory name
+      const matchingSubcategory = subcategories.find(
+        (subcat) => subcat.text === document.docsubcatname
+      );
+
+      if (!matchingSubcategory) {
+        throw new Error(`Subcategory "${document.docsubcatname}" not found`);
+      }
+
+      // Finally, fetch document info for this category and subcategory
+      const docInfo = await fetchDocumentInfo(
+        matchingCategory.value,
+        matchingSubcategory.value
+      );
+
+      // Find the document info that matches the document's name
+      const matchingDocInfo = docInfo.find(
+        (info) => info.text === document.documentname
+      );
+
+      if (!matchingDocInfo) {
+        throw new Error(`Document info "${document.documentname}" not found`);
+      }
+
+      // Set the selected document with all the IDs
+      setSelectedDocument({
+        ...document,
+        doccatid: matchingCategory.value,
+        docsubcatid: matchingSubcategory.value,
+        docinfoid: matchingDocInfo.value,
+        categories: categories,
+        subcategories: subcategories,
+        docInfo: docInfo,
+      });
+
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Error preparing document data:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to prepare document data: " + error.message,
+      });
+    } finally {
+      setIsLoadingDocData(false);
+    }
+  };
+
   const handleLogout = async () => {
     // Step 1️⃣: Ask for confirmation
     const confirmResult = await Swal.fire({
@@ -618,6 +849,9 @@ const StartupDashboard = () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: userid || "1",
+            "X-Module": "log_out",
+            "X-Action": "user Logout attempt",
           },
           body: JSON.stringify({
             userid,
@@ -695,6 +929,9 @@ const StartupDashboard = () => {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: userId || "1",
+            "X-Module": "Document Obsolete",
+            "X-Action": "Mark Document as Obsolete",
           },
           body: JSON.stringify({ url: filepath }),
         }
@@ -736,6 +973,7 @@ const StartupDashboard = () => {
   };
 
   // Define columns for DataGrid with proper null checks
+  // Define columns with conditional actions column
   const columns = [
     {
       field: "doccatname",
@@ -827,47 +1065,79 @@ const StartupDashboard = () => {
           <Typography variant="body2">---</Typography>
         ),
     },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 200,
-      sortable: false,
-      renderCell: (params) => (
-        <Box sx={{ display: "flex", gap: 1 }}>
-          {params.row?.filepath && params.row?.status === "Submitted" ? (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => handleViewDocument(params.row.filepath)}
-            >
-              View Doc
-            </Button>
-          ) : (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => handleViewDocument(params.row?.filepath)}
-              disabled={!params.row?.filepath}
-            >
-              {params.row?.filepath ? "View Doc" : "No File"}
-            </Button>
-          )}
-
-          {params.row?.collecteddocobsoletestate === "Not Obsolete" &&
-            Number(roleid) !== 1 &&
-            Number(roleid) !== 3 && (
-              <Button
-                variant="outlined"
-                color="error"
-                size="small"
-                onClick={() => handleAbolishDocument(params.row?.filepath)}
+    // Conditionally add actions column
+    ...(Number(roleid) === 4
+      ? [
+          {
+            field: "actions",
+            headerName: "Actions",
+            width: 320,
+            sortable: false,
+            renderCell: (params) => (
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 0.5,
+                  alignItems: "center",
+                  whiteSpace: "nowrap",
+                }}
               >
-                Obsolete
-              </Button>
-            )}
-        </Box>
-      ),
-    },
+                {/* If document is not submitted, show Add button */}
+                {params.row?.status !== "Submitted" && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => handleAddDocument(params.row)}
+                    title="Add this document"
+                    disabled={isLoadingDocData}
+                    startIcon={<Plus size={14} />}
+                  >
+                    {isLoadingDocData ? "Loading..." : "Add"}
+                  </Button>
+                )}
+
+                {/* If document is submitted, show View and Share buttons */}
+                {params.row?.status === "Submitted" && params.row?.filepath && (
+                  <>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => handleViewDocument(params.row.filepath)}
+                    >
+                      View Doc
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      size="small"
+                      startIcon={<Share2 size={14} />}
+                      onClick={() => {
+                        setSelectedDocument(params.row);
+                        setIsShareModalOpen(true);
+                      }}
+                    >
+                      Share
+                    </Button>
+                  </>
+                )}
+
+                {/* Obsolete button - only for non-obsolete documents */}
+                {params.row?.collecteddocobsoletestate === "Not Obsolete" && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={() => handleAbolishDocument(params.row?.filepath)}
+                  >
+                    Obsolete
+                  </Button>
+                )}
+              </Box>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -878,7 +1148,7 @@ const StartupDashboard = () => {
           <div className={style.logoSection}>
             <img src={ITELLogo} className={style.logoIcon} alt="ITEL Logo" />
             <div>
-              <h1 className={style.title}>{Title}</h1>
+              <h1 className={style.title}>ITEL Incubation Portal</h1>
               <p className={style.subtitle}>
                 {Number(roleid) === 1
                   ? "Admin Dashboard"
@@ -924,6 +1194,23 @@ const StartupDashboard = () => {
                 Chat
               </button>
             )}
+            {Number(roleid) === 4 && (
+              <button
+                className={styles.btnPrimary}
+                onClick={() => setIsLogsModalOpen(true)}
+              >
+                <FileText className={styles.icon} />
+                Audit Logs
+              </button>
+            )}
+
+            <AuditLogsModal
+              isOpen={isLogsModalOpen}
+              onClose={() => setIsLogsModalOpen(false)}
+              IPAddress={IPAdress}
+              token={token}
+              userid={userid}
+            />
 
             {Number(roleid) === 4 && (
               <button
@@ -1106,7 +1393,10 @@ const StartupDashboard = () => {
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <button
                   className={styles.buttonPrimary}
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={() => {
+                    setSelectedDocument(null); // Reset selected document
+                    setIsModalOpen(true);
+                  }}
                 >
                   <Upload className="h-4 w-4 mr-2" /> Add Document
                 </button>
@@ -1309,6 +1599,18 @@ const StartupDashboard = () => {
           </Box>
         </Modal>
 
+        {/* Share Document Modal */}
+        <ShareDocumentModal
+          isOpen={isShareModalOpen}
+          onClose={() => {
+            setIsShareModalOpen(false);
+            setSelectedDocument(null);
+          }}
+          document={selectedDocument}
+          incubateesname={incubateesname}
+          IPAdress={IPAdress}
+        />
+
         {/* Add Document Modal - Only for users */}
         {isModalOpen && Number(roleid) === 4 && (
           <DocumentUploadModal
@@ -1318,6 +1620,8 @@ const StartupDashboard = () => {
             usersrecid={usersrecid}
             onUploadSuccess={handleDocumentUpload}
             incuserid={incuserid}
+            // Pass the selected document data to pre-fill the form
+            documentData={selectedDocument}
           />
         )}
       </div>

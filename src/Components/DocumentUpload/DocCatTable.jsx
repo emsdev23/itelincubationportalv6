@@ -129,6 +129,11 @@ export default function DocCatTable() {
     fetch(url, {
       method: "GET",
       mode: "cors",
+      headers: {
+        userid: userId || "1",
+        "X-Module": "Document Management",
+        "X-Action": "Fetch  Document Categories",
+      },
     })
       .then((res) => {
         if (!res.ok) {
@@ -243,16 +248,16 @@ export default function DocCatTable() {
 
   // Define columns for DataGrid
   const columns = [
-    {
-      field: "sno",
-      headerName: "S.No",
-      width: 70,
-      sortable: false,
-      valueGetter: (params) => {
-        if (!params || !params.api) return 0;
-        return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
-      },
-    },
+    // {
+    //   field: "sno",
+    //   headerName: "S.No",
+    //   width: 70,
+    //   sortable: false,
+    //   valueGetter: (params) => {
+    //     if (!params || !params.api) return 0;
+    //     return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
+    //   },
+    // },
     {
       field: "doccatname",
       headerName: "Category Name",
@@ -408,6 +413,9 @@ export default function DocCatTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/x-www-form-urlencoded",
+            userid: userId || "1",
+            "X-Module": "Document Management",
+            "X-Action": "Delete Document Category",
           },
         })
           .then((res) => res.json())
@@ -457,16 +465,16 @@ export default function DocCatTable() {
       ? "Please wait while we update the category"
       : "Please wait while we save the category";
 
-    Swal.fire({
-      title: loadingTitle,
-      text: loadingText,
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
+    // Swal.fire({
+    //   title: loadingTitle,
+    //   text: loadingText,
+    //   allowOutsideClick: false,
+    //   allowEscapeKey: false,
+    //   showConfirmButton: false,
+    //   didOpen: () => {
+    //     Swal.showLoading();
+    //   },
+    // });
 
     // Build URL parameters safely
     const params = new URLSearchParams();
@@ -493,12 +501,18 @@ export default function DocCatTable() {
 
     console.log("API URL:", url); // Debug URL
 
+    // Determine action based on operation
+    const action = editCat ? "Edit Document Category" : "Add Document Category";
+
     fetch(url, {
       method: "POST",
       mode: "cors",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/x-www-form-urlencoded",
+        userid: userId || "1",
+        "X-Module": "Document Management",
+        "X-Action": action,
       },
     })
       .then(async (res) => {

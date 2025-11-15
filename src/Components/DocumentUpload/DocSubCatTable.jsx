@@ -133,7 +133,12 @@ export default function DocSubCatTable() {
     fetch(url, {
       method: "GET",
       mode: "cors",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        userid: userId || "1",
+        "X-Module": "Document Management",
+        "X-Action": "Fetch  Document SubCategories",
+      },
     })
       .then((res) => res.json())
       .then((data) => {
@@ -268,25 +273,21 @@ export default function DocSubCatTable() {
 
   // Define columns for DataGrid
   const columns = [
-    {
-      field: "sno",
-      headerName: "S.No",
-      width: 70,
-      sortable: false,
-      valueGetter: (params) => {
-        if (!params || !params.api) return 0;
-        return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
-      },
-    },
+    // {
+    //   field: "docsubcatrecid",
+    //   headerName: "S.No",
+    //   width: 70,
+    //   sortable: false,
+    //   valueGetter: (params) => {
+    //     if (!params || !params.api) return 0;
+    //     return params.api.getRowIndexRelativeToVisibleRows(params.row.id) + 1;
+    //   },
+    // },
     {
       field: "doccatname",
       headerName: "Category",
       width: 180,
       sortable: true,
-      valueGetter: (params) => {
-        if (!params || !params.row) return "N/A";
-        return params.row.doccatname || "N/A";
-      },
     },
     {
       field: "docsubcatname",
@@ -454,6 +455,9 @@ export default function DocSubCatTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/x-www-form-urlencoded",
+            userid: userId || "1",
+            "X-Module": "Document Management",
+            "X-Action": "Delete Document SubCategory",
           },
         })
           .then((res) => res.json())
@@ -507,16 +511,16 @@ export default function DocSubCatTable() {
       ? "Please wait while we update the subcategory"
       : "Please wait while we save the subcategory";
 
-    Swal.fire({
-      title: loadingTitle,
-      text: loadingText,
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
+    // Swal.fire({
+    //   title: loadingTitle,
+    //   text: loadingText,
+    //   allowOutsideClick: false,
+    //   allowEscapeKey: false,
+    //   showConfirmButton: false,
+    //   didOpen: () => {
+    //     Swal.showLoading();
+    //   },
+    // });
 
     // Build URL parameters safely
     const params = new URLSearchParams();
@@ -544,6 +548,9 @@ export default function DocSubCatTable() {
     const url = `${baseUrl}?${params.toString()}`;
 
     console.log("API URL:", url); // Debug URL
+    const action = editSubCat
+      ? "Edit Document SubCategory"
+      : "Add Document SubCategory";
 
     fetch(url, {
       method: "POST",
@@ -551,6 +558,9 @@ export default function DocSubCatTable() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/x-www-form-urlencoded",
+        userid: userId || "1",
+        "X-Module": "Document Management",
+        "X-Action": action,
       },
     })
       .then(async (res) => {

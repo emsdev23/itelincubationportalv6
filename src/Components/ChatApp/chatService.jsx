@@ -1,59 +1,45 @@
 // src/services/chatService.js
 import { IPAdress } from "../Datafetching/IPAdrees";
+import api from "../Datafetching/api";
 const API_BASE_URL = `${IPAdress}/itelinc`;
 
 export const getChatLists = async (userId, incUserid) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/resources/generic/getchatlist`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          userId: parseInt(userId),
-          incUserId: parseInt(incUserid),
-        }),
-      }
-    );
+    console.log("Fetching chat lists for user:", userId, incUserid);
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch chat lists");
-    }
+    const response = await api.post("/generic/getchatlist", {
+      userId: parseInt(userId),
+      incUserId: parseInt(incUserid),
+    });
 
-    const data = await response.json();
-    return data.data || [];
+    // Log the response to see its structure
+    console.log("API response:", response);
+
+    // Most API clients return data directly in response.data
+    // Adjust this based on your API client's response structure
+    const data = response.data || response;
+
+    // Log the data to verify it has the expected structure
+    console.log("Chat lists data:", data);
+
+    return data.data || data || [];
   } catch (error) {
     console.error("Error fetching chat lists:", error);
     throw error;
   }
 };
-
 export const createChat = async (chatData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/resources/chat/initiate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        chattype: chatData.chattype,
-        from: chatData.from,
-        to: chatData.to,
-        subject: chatData.subject,
-      }),
+    const response = await api.post("/chat/initiate", {
+      chattype: chatData.chattype,
+      from: chatData.from,
+      to: chatData.to,
+      subject: chatData.subject,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to create chat: ${response.status} ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data;
+    // Adjust based on your API client's response structure
+    // Most API clients return data directly in response.data
+    return response.data || response;
   } catch (error) {
     console.error("Error creating chat:", error);
     throw error;
@@ -62,28 +48,15 @@ export const createChat = async (chatData) => {
 
 export const getChatDetails = async (userId, chatId, incUserid) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/resources/generic/getchatdetails`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          userId: parseInt(userId),
-          chatId: parseInt(chatId),
-          incuserid: parseInt(incUserid),
-        }),
-      }
-    );
+    const response = await api.post("/generic/getchatdetails", {
+      userId: parseInt(userId),
+      chatId: parseInt(chatId),
+      incuserid: parseInt(incUserid), // Keeping the lowercase as in the original
+    });
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch chat details");
-    }
-
-    const data = await response.json();
-    return data.data || [];
+    // Adjust based on your API client's response structure
+    // Most API clients return data directly in response.data
+    return response.data?.data || [];
   } catch (error) {
     console.error("Error fetching chat details:", error);
     throw error;
@@ -106,24 +79,11 @@ export const sendMessage = async (messageData) => {
       requestBody.chatdetailsreplyfor = messageData.chatdetailsreplyfor;
     }
 
-    const response = await fetch(`${API_BASE_URL}/resources/chat/send`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
+    const response = await api.post("/chat/send", requestBody);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to send message: ${response.status} ${errorText}`
-      );
-    }
-
-    const data = await response.json();
-    return data;
+    // Adjust based on your API client's response structure
+    // Most API clients return data directly in response.data
+    return response.data || response;
   } catch (error) {
     console.error("Error sending message:", error);
     throw error;
@@ -137,6 +97,9 @@ export const getUsers = async (userId, incUserid) => {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+        userid: userId,
+        "X-Module": "Chat Module",
+        "X-Action": "Fetching users",
       },
       body: JSON.stringify({
         userId: userId || null,
@@ -156,7 +119,6 @@ export const getUsers = async (userId, incUserid) => {
     throw error;
   }
 };
-
 export const getChatTypes = async (userId, incUserid) => {
   try {
     const response = await fetch(
@@ -166,6 +128,9 @@ export const getChatTypes = async (userId, incUserid) => {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          userid: userId,
+          "X-Module": "Chat Module",
+          "X-Action": "Fetching chat types",
         },
         body: JSON.stringify({
           userId: parseInt(userId),
@@ -199,6 +164,9 @@ export const getChatHistory = async (userId, incuserid) => {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          userid: userId,
+          "X-Module": "Chat Module",
+          "X-Action": "Fetching chat history",
         },
         body: JSON.stringify({
           userId: parseInt(userId),

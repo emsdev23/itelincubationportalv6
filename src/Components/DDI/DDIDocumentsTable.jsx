@@ -137,6 +137,9 @@ export default function DDIDocumentsTable({ userRecID = "ALL" }) {
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
+              userid: usersrecid || "1",
+              "X-Module": "DDI Documents",
+              "X-Action": "Fetching DDI Documents List",
             },
           }
         );
@@ -294,29 +297,34 @@ export default function DDIDocumentsTable({ userRecID = "ALL" }) {
           },
         ]
       : []),
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 150,
-      sortable: false,
-      renderCell: (params) => {
-        if (!params || !params.row) return null;
-        return (
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() =>
-              handleViewDocument(
-                params.row.ddidocumentsfilepath,
-                params.row.ddidocumentsname
-              )
-            }
-          >
-            View Document
-          </Button>
-        );
-      },
-    },
+    // Only include the Actions column if roleId is 7 or 4
+    ...(roleid === 7 || roleid === 4
+      ? [
+          {
+            field: "actions",
+            headerName: "Actions",
+            width: 150,
+            sortable: false,
+            renderCell: (params) => {
+              if (!params || !params.row) return null;
+              return (
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() =>
+                    handleViewDocument(
+                      params.row.ddidocumentsfilepath,
+                      params.row.ddidocumentsname
+                    )
+                  }
+                >
+                  View Document
+                </Button>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   // Helper function to download file with proper name
@@ -368,6 +376,9 @@ export default function DDIDocumentsTable({ userRecID = "ALL" }) {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            userid: userid || "1",
+            "X-Module": "DDI Documents",
+            "X-Action": "DDI Document preview",
           },
           body: JSON.stringify({
             userid: userid,

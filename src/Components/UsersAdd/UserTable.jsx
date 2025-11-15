@@ -421,6 +421,9 @@ export default function UserTable() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        userid: userId || "1",
+        "X-Module": "User Management",
+        "X-Action": "Fetching Users List",
       },
       body: JSON.stringify({
         userId: userId || null,
@@ -455,6 +458,9 @@ export default function UserTable() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        userid: userId || "1",
+        "X-Module": "User Management",
+        "X-Action": "Fetching Roles List",
       },
       body: JSON.stringify({
         userId: userId || null,
@@ -497,6 +503,9 @@ export default function UserTable() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        userid: userId || "1",
+        "X-Module": "User Management",
+        "X-Action": "Fetching Incubatees List",
       },
       body: JSON.stringify({
         userId: userId || null,
@@ -532,6 +541,9 @@ export default function UserTable() {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        userid: userId || "1",
+        "X-Module": "User Management",
+        "X-Action": "Fetching Incubators List",
       },
       body: JSON.stringify({
         userId: userId || null,
@@ -606,6 +618,9 @@ export default function UserTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/x-www-form-urlencoded",
+            userid: userId || "1",
+            "X-Module": "user Management",
+            "X-Action": "Delete User",
           },
         })
           .then((res) => res.json())
@@ -918,6 +933,7 @@ export default function UserTable() {
         params.append("userscreatedby", userId || "system");
         params.append("usersmodifiedby", userId || "system");
         params.append("usersincubationsrecid", formData.usersincubationsrecid);
+        // params.append("userid", userId || null);
 
         // Only add incubateesrecid if it's not null or empty
         if (formData.usersincubateesrecid) {
@@ -931,6 +947,11 @@ export default function UserTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/x-www-form-urlencoded",
+            userid: userId || "1",
+            "X-Module": "user Management",
+            "X-Action": "Add User",
+
+            // userid: userId,
           },
         })
           .then((res) => {
@@ -1295,6 +1316,9 @@ export default function UserTable() {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/x-www-form-urlencoded",
+            userid: userId || "1",
+            "X-Module": "User Management",
+            "X-Action": "Edit User",
           },
         })
           .then((res) => res.json())
