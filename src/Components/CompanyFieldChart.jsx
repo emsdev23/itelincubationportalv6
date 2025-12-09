@@ -1,7 +1,7 @@
 import React from "react";
 import ReactApexChart from "react-apexcharts";
 import styles from "./CompanyFieldChart.module.css";
-
+import MetricCardShimmer from "./MetricCardShimmer";
 const COLORS = [
   "#3b82f6",
   "#0ea5e9",
@@ -20,7 +20,8 @@ const COLORS = [
 
 const CompanyFieldChart = ({ byField }) => {
   // if (!byField || byField.length === 0) return <p>No data available</p>;
-  if (!byField || byField.length === 0) return <p></p>;
+  // if (!byField || byField.length === 0) return <p></p>;
+  const isLoading = !byField || Object.keys(byField).length === 0;
 
   const total = byField.reduce((sum, item) => sum + item.incubatees_count, 0);
 
@@ -70,17 +71,27 @@ const CompanyFieldChart = ({ byField }) => {
 
   return (
     <div className={styles.card}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>Companies by Field</h3>
-      </div>
-      <div className={styles.content}>
-        <ReactApexChart
-          options={options}
-          series={series}
-          type="pie"
-          height={350}
-        />
-      </div>
+      {isLoading ? (
+        // If stats are not available, show the shimmer placeholders
+        <>
+          <MetricCardShimmer />
+        </>
+      ) : (
+        <div>
+          {" "}
+          <div className={styles.header}>
+            <h3 className={styles.title}>Companies by Field</h3>
+          </div>
+          <div className={styles.content}>
+            <ReactApexChart
+              options={options}
+              series={series}
+              type="pie"
+              height={350}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

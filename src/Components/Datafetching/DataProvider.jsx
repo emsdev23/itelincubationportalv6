@@ -38,6 +38,10 @@ export const DataProvider = ({ children }) => {
   const [incubationDetails, setIncubationDetails] = useState(null);
   const [incubationLoading, setIncubationLoading] = useState(false);
 
+  // NEW: State for menu items from API
+  const [menuItemsFromAPI, setMenuItemsFromAPI] = useState([]);
+  const [menuItemsLoading, setMenuItemsLoading] = useState(true);
+
   // Create proper setters that update sessionStorage
   const setUserid = (id) => {
     const idString = id ? String(id) : null;
@@ -214,6 +218,42 @@ export const DataProvider = ({ children }) => {
       setincuserid(null);
     }
   };
+
+  // NEW: Function to fetch menu items from API
+  const fetchMenuItems = async () => {
+    if (!userid || !roleid) {
+      console.error("User ID or Role ID is missing. Cannot fetch menu items.");
+      setMenuItemsLoading(false);
+      return;
+    }
+
+    try {
+      setMenuItemsLoading(true);
+      const response = await api.post("/generic/getapplist", {
+        userId: Number(userid),
+        roleId: Number(roleid),
+      });
+
+      if (response.data && response.data.data) {
+        setMenuItemsFromAPI(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching menu items:", error);
+      setMenuItemsFromAPI([]);
+    } finally {
+      setMenuItemsLoading(false);
+    }
+  };
+
+  // NEW: Fetch menu items when user logs in or role changes
+  useEffect(() => {
+    if (userid && roleid) {
+      fetchMenuItems();
+    } else {
+      setMenuItemsFromAPI([]);
+      setMenuItemsLoading(false);
+    }
+  }, [userid, roleid]);
 
   const refreshCompanyDocuments = async () => {
     try {
@@ -562,6 +602,10 @@ export const DataProvider = ({ children }) => {
         resetIncubationSelection,
         fetchDocumentsByDateRange, // NEW: Add this to the context
         dateFilterLoading, // NEW: Add this to the context
+
+        menuItemsFromAPI,
+        menuItemsLoading,
+        fetchMenuItems,
       }}
     >
       {children}

@@ -11,32 +11,7 @@ import { IPAdress } from "../Datafetching/IPAdrees";
 export default function UserAssociation() {
   return (
     <div className="doc-management-page">
-      <header className={styles.header}>
-        <div className={styles.container}>
-          {/* Left - Logo + Title */}
-          <div className={styles.logoSection}>
-            <img src={ITELLogo} className={styles.logoIcon} alt="ITEL Logo" />
-            <div>
-              <h1 className={styles.title}>ITEL Incubation Portal</h1>
-              <p className={styles.subtitle}>Startup Management Dashboard</p>
-            </div>
-          </div>
-
-          {/* Right - Actions */}
-          <div className={styles.actions}>
-            <NavLink
-              to="/Incubation/Dashboard/"
-              style={{ textDecoration: "none" }}
-            >
-              <button className={styles.btnPrimary}>
-                <MoveLeft className={styles.icon} />
-                Back To Portal
-              </button>
-            </NavLink>
-          </div>
-        </div>
-      </header>
-      <main className="doc-management-main">
+      <main className="doc-management-main" style={{ paddingTop: "100px" }}>
         <h1>🔗 User Associations Management</h1>
         <section className="doccat-section">
           <UserAssociationTable />

@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { FaSpinner } from "react-icons/fa";
 
-export default function DocCatModal({ isOpen, onClose, onSave, editData, isLoading = false }) {
+export default function DocCatModal({
+  isOpen,
+  onClose,
+  onSave,
+  editData,
+  isLoading = false,
+}) {
   const [formData, setFormData] = useState({
     doccatname: "",
     doccatdescription: "",
@@ -30,8 +36,8 @@ export default function DocCatModal({ isOpen, onClose, onSave, editData, isLoadi
     e.preventDefault();
     onSave({
       ...formData,
-      doccatrecid: editData?.doccatrecid,    // include ID for updates
-      doccatmodifiedby: "system",            // required by backend
+      doccatrecid: editData?.doccatrecid, // include ID for updates
+      doccatmodifiedby: "system", // required by backend
     });
   };
 
@@ -46,7 +52,7 @@ export default function DocCatModal({ isOpen, onClose, onSave, editData, isLoadi
             &times;
           </button>
         </div>
-        
+
         {/* Loading overlay */}
         {isLoading && (
           <div className="modal-loading-overlay">
@@ -56,7 +62,7 @@ export default function DocCatModal({ isOpen, onClose, onSave, editData, isLoadi
             </div>
           </div>
         )}
-        
+
         <form className="doccat-form" onSubmit={handleSubmit}>
           <label>
             Category Name
@@ -80,26 +86,24 @@ export default function DocCatModal({ isOpen, onClose, onSave, editData, isLoadi
             />
           </label>
           <div className="doccat-form-actions">
-            <button 
-              type="button" 
-              className="btn-cancel" 
+            <button
+              type="button"
+              className="btn-cancel"
               onClick={onClose}
               disabled={isLoading}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="btn-save"
-              disabled={isLoading}
-            >
+            <button type="submit" className="btn-save" disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <FaSpinner className="spinner" size={14} /> 
+                  <FaSpinner className="spinner" size={14} />
                   {editData ? "Updating..." : "Saving..."}
                 </>
+              ) : editData ? (
+                "Update"
               ) : (
-                editData ? "Update" : "Save"
+                "Save"
               )}
             </button>
           </div>

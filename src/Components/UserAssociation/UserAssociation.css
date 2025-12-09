@@ -6,8 +6,9 @@
 .user-association-container {
   padding: 2rem;
   background: #f3f4f6; /* gray-100 */
-  min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  /* min-height: 100vh; */
+  font-family: "Inter", sans-serif;
+  margin-bottom: 30px;
 }
 
 /* Header */
@@ -176,7 +177,11 @@
 }
 
 /* Buttons */
-.btn-edit, .btn-delete, .btn-close, .btn-cancel, .btn-save {
+.btn-edit,
+.btn-delete,
+.btn-close,
+.btn-cancel,
+.btn-save {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -251,8 +256,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Modal Styles */
@@ -404,21 +413,21 @@
   .user-association-container {
     padding: 1rem;
   }
-  
+
   .user-association-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .table-container {
     overflow-x: auto;
   }
-  
+
   .association-table {
     min-width: 700px;
   }
-  
+
   .user-association-modal-content {
     width: 95%;
     max-height: 90vh;

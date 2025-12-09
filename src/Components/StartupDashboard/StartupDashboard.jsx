@@ -52,6 +52,8 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 // Import ReusableDataGrid component
 import ReusableDataGrid from "../Datafetching/ReusableDataGrid";
 
+import StartupDashboardShimmer from "./StartupDashboardShimmer";
+
 // Material UI imports
 import { DataGrid } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
@@ -186,6 +188,7 @@ const StartupDashboard = () => {
     setToYear,
     fetchDocumentsByDateRange,
     dateFilterLoading,
+    loading,
   } = useContext(DataContext);
 
   // ALL STATE HOOKS MUST BE DECLARED AT THE TOP - NO CONDITIONALS
@@ -1521,6 +1524,7 @@ const StartupDashboard = () => {
   };
 
   // Calculate loading state
+  // This logic remains the same
   const isLoading =
     adminStartupLoading ||
     dateFilterLoading ||
@@ -1531,7 +1535,8 @@ const StartupDashboard = () => {
 
   // Now we can safely use conditional rendering for UI elements
   if (isLoading) {
-    return <Spinner />;
+    // If it's loading, show the shimmer
+    return <StartupDashboardShimmer />;
   }
 
   if (!hasData) {
@@ -1552,107 +1557,7 @@ const StartupDashboard = () => {
         {/* Navigation bar */}
         <header className={style.header}>
           <div className={style.container}>
-            <div className={style.logoSection}>
-              <img src={ITELLogo} className={style.logoIcon} alt="ITEL Logo" />
-              <div>
-                <h1 className={style.title}>ITEL Incubation Portal</h1>
-                <p className={style.subtitle}>
-                  {Number(roleid) === 1
-                    ? "Admin Dashboard"
-                    : "Startup Management Dashboard"}
-                </p>
-              </div>
-            </div>
-
             <div className={style.actions}>
-              {/* Show back button for admin */}
-              {(Number(roleid) === 1 ||
-                Number(roleid) === 3 ||
-                (Number(roleid) === 7 && adminviewData)) && (
-                <button
-                  className={style.btnPrimary}
-                  onClick={handleBackToAdmin}
-                  style={{
-                    background: "#63e6be",
-                    display: "flex",
-                    fontWeight: "bold",
-                    color: "#0b7285",
-                  }}
-                >
-                  <ArrowLeft className={style.icon} />
-                  Back to Portal
-                </button>
-              )}
-
-              {/* Chat button */}
-              {Number(roleid) === 4 && (
-                <button
-                  className={style.btnPrimary}
-                  onClick={() => navigate(`/Incubation/Dashboard/Chats`)}
-                  style={{
-                    background: "#4dabf7",
-                    display: "flex",
-                    fontWeight: "bold",
-                    color: "#1864ab",
-                  }}
-                >
-                  <MessageSquare className={style.icon} />
-                  Chat
-                </button>
-              )}
-              {Number(roleid) === 4 && (
-                <button
-                  className={styles.btnPrimary}
-                  onClick={() => setIsLogsModalOpen(true)}
-                >
-                  <FileText className={styles.icon} />
-                  Audit Logs
-                </button>
-              )}
-
-              <AuditLogsModal
-                isOpen={isLogsModalOpen}
-                onClose={() => setIsLogsModalOpen(false)}
-                IPAddress={IPAdress}
-                token={token}
-                userid={userid}
-              />
-
-              {Number(roleid) === 4 && (
-                <button
-                  className={style.btnPrimary}
-                  onClick={handleLogout}
-                  style={{ background: "#fa5252", fontWeight: "bold" }}
-                >
-                  <LogOut className={style.icon} />
-                  Logout
-                </button>
-              )}
-
-              {Number(roleid) === 4 && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    fontSize: "0.8rem",
-                    color: "gray",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setIsChangePasswordOpen(true)}
-                >
-                  <CircleUserRound />
-                  <div>{founderName}</div>
-                </div>
-              )}
-
-              {/* Always render the modal but control visibility with isOpen prop */}
-              <ChangePasswordModal
-                isOpen={isChangePasswordOpen && Number(roleid) === 4}
-                onClose={() => setIsChangePasswordOpen(false)}
-              />
-
               {/* Contact Modal */}
               <ContactModal
                 isOpen={isContactModalOpen}
@@ -1665,7 +1570,7 @@ const StartupDashboard = () => {
         </header>
 
         {/* Startup dashboard */}
-        <div className={styles.container}>
+        <div className={styles.container} style={{ paddingTop: "100px" }}>
           {/* Header */}
           <div className={styles.headerCard}>
             <div className={styles.headerContent}>
@@ -1946,6 +1851,8 @@ const StartupDashboard = () => {
                 sheetName: "Documents",
               }}
               className={styles.dataGridContainer}
+              loading={loading} // <-- PASS THE LOADING STATE HERE
+              shimmerRowCount={8} // <-- OPTIONAL: Customize shimmer rows
             />
           </div>
 

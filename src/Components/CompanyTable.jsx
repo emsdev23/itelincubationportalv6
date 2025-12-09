@@ -7,7 +7,8 @@ import styles from "./CompanyTable.module.css";
 
 export default function CompanyTable({ companyList = [] }) {
   const navigate = useNavigate();
-  const { roleid, setadminviewData, incuserid } = useContext(DataContext);
+  const { roleid, setadminviewData, incuserid, loading } =
+    useContext(DataContext);
   const [fieldOfWorkList, setFieldOfWorkList] = useState([]);
 
   // Fetch Field of Work List from API
@@ -187,6 +188,8 @@ export default function CompanyTable({ companyList = [] }) {
       }}
       // Column filters
       enableColumnFilters={true}
+      loading={loading} // <-- PASS THE LOADING STATE HERE
+      shimmerRowCount={5} // <-- OPTIONAL: Customize shimmer rows
       // Custom CSS class
       className={styles.card}
     />

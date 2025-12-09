@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { FaFilter, FaTimes } from "react-icons/fa";
@@ -22,13 +22,101 @@ import {
   Card,
   CardContent,
   CardActions,
+  Skeleton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
-// Styled components
+// --- START: SHIMMER COMPONENT ---
+const ShimmerContainer = styled(Box)(({ theme }) => ({
+  width: "100%",
+  padding: theme.spacing(2),
+  backgroundColor: "#fff",
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+}));
+
+const ShimmerFiltersContainer = styled(Box)(({ theme }) => ({
+  display: "flex",
+  gap: theme.spacing(2),
+  marginBottom: theme.spacing(2),
+  flexWrap: "wrap",
+}));
+
+const TableShimmer = ({
+  title,
+  enableExport,
+  columnCount = 8,
+  rowCount = 10,
+}) => {
+  return (
+    <ShimmerContainer>
+      {/* Title and Export Buttons Shimmer */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Skeleton variant="text" width={200} height={32} />
+        {enableExport && (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Skeleton variant="rectangular" width={120} height={36} rx={4} />
+            <Skeleton variant="rectangular" width={130} height={36} rx={4} />
+          </Box>
+        )}
+      </Box>
+
+      {/* Filters Shimmer */}
+      <ShimmerFiltersContainer>
+        <Skeleton variant="rectangular" width={250} height={40} rx={4} />
+        <Skeleton variant="rectangular" width={200} height={40} rx={4} />
+        <Skeleton variant="rectangular" width={120} height={40} rx={4} />
+      </ShimmerFiltersContainer>
+
+      {/* Table Shimmer using Material-UI DataGrid skeleton structure */}
+      <Box sx={{ width: "100%" }}>
+        {/* Header Row Shimmer */}
+        <Box sx={{ display: "flex", borderBottom: "1px solid #e0e0e0", pb: 1 }}>
+          {Array.from({ length: columnCount }).map((_, index) => (
+            <Skeleton
+              key={`header-${index}`}
+              variant="text"
+              height={24}
+              sx={{ flex: 1, mx: 1 }}
+            />
+          ))}
+        </Box>
+
+        {/* Data Rows Shimmer */}
+        {Array.from({ length: rowCount }).map((_, rowIndex) => (
+          <Box
+            key={`row-${rowIndex}`}
+            sx={{ display: "flex", borderBottom: "1px solid #f0f0f0", py: 1 }}
+          >
+            {Array.from({ length: columnCount }).map((_, colIndex) => (
+              <Skeleton
+                key={`cell-${rowIndex}-${colIndex}`}
+                variant="text"
+                height={20}
+                sx={{ flex: 1, mx: 1 }}
+              />
+            ))}
+          </Box>
+        ))}
+      </Box>
+    </ShimmerContainer>
+  );
+};
+// --- END: SHIMMER COMPONENT ---
+
+// Styled components for the main grid
 const StyledPaper = styled(Paper)(({ theme }) => ({
   width: "100%",
   marginBottom: theme.spacing(2),
+  boxShadow: "none",
+  border: `1px solid ${theme.palette.divider}`,
 }));
 
 const StyledChip = styled(Chip)(({ theme, customcolor }) => ({
@@ -42,10 +130,14 @@ const StyledChip = styled(Chip)(({ theme, customcolor }) => ({
 const formatDate = (dateString) => {
   if (!dateString) return "-";
   try {
-    const formattedDate = dateString.endsWith("Z")
-      ? `${dateString.slice(0, -1)}T00:00:00Z`
-      : dateString;
-    return new Date(formattedDate).toLocaleDateString();
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}/${month}/${day}`;
   } catch (error) {
     console.error("Error parsing date:", error);
     return dateString;
@@ -54,40 +146,6 @@ const formatDate = (dateString) => {
 
 /**
  * ReusableDataGrid - A flexible, feature-rich data grid component
- *
- * @param {Object} props
- * @param {Array} props.data - The data array to display
- * @param {Array} props.columns - Column configuration (see below for structure)
- * @param {String} props.title - Table title
- * @param {Array} props.dropdownFilters - Optional dropdown filter configuration
- * @param {Boolean} props.enableExport - Enable CSV/Excel export (default: true)
- * @param {Boolean} props.enableColumnFilters - Enable per-column filters (default: true)
- * @param {String} props.searchPlaceholder - Search field placeholder
- * @param {Array} props.searchFields - Fields to search across
- * @param {String} props.uniqueIdField - Field to use as unique row ID
- * @param {Function} props.onExportData - Custom export data transformer
- * @param {Object} props.exportConfig - Export configuration
- *
- * Column Structure:
- * {
- *   field: string,              // Field name in data
- *   headerName: string,         // Display name
- *   width: number,              // Column width
- *   sortable: boolean,          // Enable sorting (default: true)
- *   filterable: boolean,        // Enable column filter (default: true)
- *   type: 'text'|'date'|'chip'|'actions', // Column type
- *   renderCell: function,       // Custom cell renderer
- *   chipColors: object,         // Color mapping for chip type
- *   actions: array              // Action buttons for actions type
- * }
- *
- * Dropdown Filter Structure:
- * {
- *   field: string,              // Field to filter on
- *   label: string,              // Filter label
- *   options: array,             // Filter options [{value, label, count?}]
- *   width: number               // Filter width (default: 200)
- * }
  */
 export default function ReusableDataGrid({
   data = [],
@@ -102,7 +160,10 @@ export default function ReusableDataGrid({
   onExportData = null,
   exportConfig = {},
   className = "",
+  loading = false,
+  shimmerRowCount = 10,
 }) {
+  // --- FIX: ALL HOOKS MUST BE CALLED ON EVERY RENDER ---
   // State management
   const [searchTerm, setSearchTerm] = useState("");
   const [dropdownFilterValues, setDropdownFilterValues] = useState(
@@ -119,48 +180,43 @@ export default function ReusableDataGrid({
     pageSize: 10,
   });
 
-  // Deduplicate data by unique ID (only if unique IDs exist)
-  const uniqueData = useMemo(() => {
-    // Check if all items have valid unique IDs
-    const hasValidIds = data.every((item) => item[uniqueIdField]);
+  const filterInputRef = useRef(null);
 
-    if (!hasValidIds) {
-      // If no valid IDs, don't deduplicate - return original data
-      return data;
+  const handleFilterPopoverEnter = () => {
+    if (filterInputRef.current) {
+      filterInputRef.current.focus();
     }
+  };
 
-    // Only deduplicate if we have valid unique IDs
+  // Memoized values are calculated on every render, but only used if `loading` is false.
+  // This is correct and prevents the hook order error.
+  const uniqueData = useMemo(() => {
+    const hasValidIds = data.every((item) => item[uniqueIdField]);
+    if (!hasValidIds) return data;
     return Array.from(
       new Map(data.map((item) => [item[uniqueIdField], item])).values()
     );
   }, [data, uniqueIdField]);
 
-  // Filter data
   const filteredData = useMemo(() => {
     return uniqueData.filter((item) => {
-      // General search filter
       const matchesSearch =
         searchTerm === "" ||
         searchFields.some((field) =>
           (item[field] || "").toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-      // Dropdown filters
       const matchesDropdowns = dropdownFilters.every((filter) => {
         const filterValue = dropdownFilterValues[filter.field];
         if (filterValue === "all") return true;
-
         const itemValue = item[filter.field];
         if (!itemValue) return false;
-
-        // Handle both string and number comparisons
         return (
           itemValue.toString().toLowerCase() ===
           filterValue.toString().toLowerCase()
         );
       });
 
-      // Column-specific filters
       const matchesColumnFilters = Object.entries(columnFilters).every(
         ([field, value]) => {
           if (!value) return true;
@@ -182,7 +238,6 @@ export default function ReusableDataGrid({
     dropdownFilters,
   ]);
 
-  // Build DataGrid columns
   const dataGridColumns = useMemo(() => {
     return columns.map((col) => {
       const baseColumn = {
@@ -190,31 +245,31 @@ export default function ReusableDataGrid({
         headerName: col.headerName,
         width: col.width || 150,
         sortable: col.sortable !== false,
+        renderHeader: (params) => {
+          if (
+            enableColumnFilters &&
+            col.filterable !== false &&
+            col.type !== "actions"
+          ) {
+            return (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography noWrap>{col.headerName}</Typography>
+                <Tooltip title="Filter">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleFilterClick(e, col.field)}
+                    color={columnFilters[col.field] ? "primary" : "default"}
+                  >
+                    <FaFilter size={14} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            );
+          }
+          return <Typography noWrap>{col.headerName}</Typography>;
+        },
       };
 
-      // Add filter icon to header if filterable
-      if (
-        enableColumnFilters &&
-        col.filterable !== false &&
-        col.type !== "actions"
-      ) {
-        baseColumn.renderHeader = () => (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography>{col.headerName}</Typography>
-            <Tooltip title="Filter">
-              <IconButton
-                size="small"
-                onClick={(e) => handleFilterClick(e, col.field)}
-                color={columnFilters[col.field] ? "primary" : "default"}
-              >
-                <FaFilter size={14} />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        );
-      }
-
-      // Handle different column types
       if (col.type === "date") {
         baseColumn.renderCell = (params) => {
           if (!params?.row) return "-";
@@ -268,7 +323,6 @@ export default function ReusableDataGrid({
     });
   }, [columns, columnFilters, enableColumnFilters]);
 
-  // Add unique ID to rows
   const rowsWithId = useMemo(() => {
     return filteredData.map((item, index) => ({
       ...item,
@@ -318,8 +372,6 @@ export default function ReusableDataGrid({
     if (onExportData) {
       return onExportData(filteredData);
     }
-
-    // Default export: all non-action columns
     return filteredData.map((item) => {
       const row = {};
       columns
@@ -327,13 +379,11 @@ export default function ReusableDataGrid({
         .forEach((col) => {
           const header = col.exportHeader || col.headerName;
           let value = item[col.field];
-
           if (col.type === "date") {
             value = formatDate(value);
           } else if (col.type === "chip" && col.displayField) {
             value = item[col.displayField];
           }
-
           row[header] = value || "";
         });
       return row;
@@ -378,7 +428,6 @@ export default function ReusableDataGrid({
       alert("Excel export is not available.");
       return;
     }
-
     try {
       const exportData = getExportData();
       const wb = XLSX.utils.book_new();
@@ -396,193 +445,200 @@ export default function ReusableDataGrid({
     }
   };
 
+  // --- FIX: Conditional rendering is now inside the return statement ---
   return (
     <div className={className}>
-      <div style={{ marginBottom: "16px" }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
-          <Typography variant="h5">{title}</Typography>
-          {enableExport && (
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button
-                variant="outlined"
-                startIcon={<Download size={16} />}
-                onClick={exportToCSV}
-              >
-                Export CSV
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Download size={16} />}
-                onClick={exportToExcel}
-                disabled={!XLSX}
-              >
-                Export Excel
-              </Button>
-            </Box>
-          )}
-        </Box>
+      {loading ? (
+        <TableShimmer
+          title={title}
+          enableExport={enableExport}
+          columnCount={columns.length}
+          rowCount={shimmerRowCount}
+        />
+      ) : (
+        <div style={{ marginBottom: "16px" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h5">{title}</Typography>
+            {enableExport && (
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Download size={16} />}
+                  onClick={exportToCSV}
+                >
+                  Export CSV
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Download size={16} />}
+                  onClick={exportToExcel}
+                  disabled={!XLSX}
+                >
+                  Export Excel
+                </Button>
+              </Box>
+            )}
+          </Box>
 
-        {/* Filters Section */}
-        <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
-          {searchFields.length > 0 && (
-            <TextField
-              label={searchPlaceholder}
-              variant="outlined"
-              size="small"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ minWidth: 250 }}
-            />
-          )}
+          <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
+            {searchFields.length > 0 && (
+              <TextField
+                label={searchPlaceholder}
+                variant="outlined"
+                size="small"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ minWidth: 250 }}
+              />
+            )}
 
-          {dropdownFilters.map((filter, idx) => (
-            <FormControl
-              key={idx}
-              size="small"
-              sx={{ minWidth: filter.width || 200 }}
-            >
-              <InputLabel id={`${filter.field}-label`}>
-                {filter.label}
-              </InputLabel>
+            {dropdownFilters.map((filter, idx) => (
+              <FormControl
+                key={idx}
+                size="small"
+                sx={{ minWidth: filter.width || 200 }}
+              >
+                <InputLabel id={`${filter.field}-label`}>
+                  {filter.label}
+                </InputLabel>
+                <Select
+                  labelId={`${filter.field}-label`}
+                  value={dropdownFilterValues[filter.field]}
+                  onChange={(e) =>
+                    setDropdownFilterValues((prev) => ({
+                      ...prev,
+                      [filter.field]: e.target.value,
+                    }))
+                  }
+                  label={filter.label}
+                >
+                  <MenuItem value="all">All {filter.label}</MenuItem>
+                  {filter.options.map((option, optIdx) => (
+                    <MenuItem key={optIdx} value={option.value}>
+                      {option.label}
+                      {option.count !== undefined && ` (${option.count})`}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ))}
+
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel id="items-per-page-label">Items per page</InputLabel>
               <Select
-                labelId={`${filter.field}-label`}
-                value={dropdownFilterValues[filter.field]}
+                labelId="items-per-page-label"
+                value={paginationModel.pageSize}
                 onChange={(e) =>
-                  setDropdownFilterValues((prev) => ({
-                    ...prev,
-                    [filter.field]: e.target.value,
-                  }))
+                  setPaginationModel({
+                    ...paginationModel,
+                    pageSize: Number(e.target.value),
+                    page: 0,
+                  })
                 }
-                label={filter.label}
+                label="Items per page"
               >
-                <MenuItem value="all">All {filter.label}</MenuItem>
-                {filter.options.map((option, optIdx) => (
-                  <MenuItem key={optIdx} value={option.value}>
-                    {option.label}
-                    {option.count !== undefined && ` (${option.count})`}
-                  </MenuItem>
-                ))}
+                <MenuItem value={5}>5 per page</MenuItem>
+                <MenuItem value={10}>10 per page</MenuItem>
+                <MenuItem value={25}>25 per page</MenuItem>
+                <MenuItem value={50}>50 per page</MenuItem>
               </Select>
             </FormControl>
-          ))}
 
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel id="items-per-page-label">Items per page</InputLabel>
-            <Select
-              labelId="items-per-page-label"
-              value={paginationModel.pageSize}
-              onChange={(e) =>
-                setPaginationModel({
-                  ...paginationModel,
-                  pageSize: Number(e.target.value),
-                  page: 0,
-                })
-              }
-              label="Items per page"
-            >
-              <MenuItem value={5}>5 per page</MenuItem>
-              <MenuItem value={10}>10 per page</MenuItem>
-              <MenuItem value={25}>25 per page</MenuItem>
-              <MenuItem value={50}>50 per page</MenuItem>
-            </Select>
-          </FormControl>
-
-          {hasActiveFilters && (
-            <Button
-              variant="outlined"
-              startIcon={<FaTimes />}
-              onClick={clearAllFilters}
-              sx={{ height: "fit-content" }}
-            >
-              Clear All Filters
-            </Button>
-          )}
-        </Box>
-
-        {/* Results Info */}
-        <Box sx={{ mb: 1, color: "text.secondary" }}>
-          Showing {paginationModel.page * paginationModel.pageSize + 1} to{" "}
-          {Math.min(
-            (paginationModel.page + 1) * paginationModel.pageSize,
-            filteredData.length
-          )}{" "}
-          of {filteredData.length} entries
-        </Box>
-
-        {/* DataGrid */}
-        <StyledPaper>
-          <DataGrid
-            rows={rowsWithId}
-            columns={dataGridColumns}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            pageSizeOptions={[5, 10, 25, 50]}
-            disableRowSelectionOnClick
-            sx={{ border: 0 }}
-            autoHeight
-            disableColumnMenu
-          />
-        </StyledPaper>
-
-        {filteredData.length === 0 && (
-          <Box sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
-            No data found matching your criteria.
-          </Box>
-        )}
-
-        {/* Filter Popover */}
-        {/* Filter Popover */}
-        <Popover
-          open={Boolean(filterAnchorEl)}
-          anchorEl={filterAnchorEl}
-          onClose={handleFilterClose}
-          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-          transformOrigin={{ vertical: "top", horizontal: "left" }}
-        >
-          <Card sx={{ minWidth: 280, maxWidth: 400 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Filter by{" "}
-                {columns.find((c) => c.field === filterColumn)?.headerName}
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder={`Enter ${
-                  columns.find((c) => c.field === filterColumn)?.headerName
-                }...`}
-                value={columnFilters[filterColumn] || ""}
-                onChange={(e) =>
-                  handleFilterChange(filterColumn, e.target.value)
-                }
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    handleFilterClose();
-                  }
-                }}
+            {hasActiveFilters && (
+              <Button
                 variant="outlined"
-                margin="normal"
-              />
-            </CardContent>
-            <CardActions sx={{ justifyContent: "flex-end" }}>
-              <Button size="small" onClick={clearFilter}>
-                Clear
+                startIcon={<FaTimes />}
+                onClick={clearAllFilters}
+                sx={{ height: "fit-content" }}
+              >
+                Clear All Filters
               </Button>
-              <Button size="small" onClick={handleFilterClose}>
-                Close
-              </Button>
-            </CardActions>
-          </Card>
-        </Popover>
-      </div>
+            )}
+          </Box>
+
+          <Box sx={{ mb: 1, color: "text.secondary" }}>
+            Showing {paginationModel.page * paginationModel.pageSize + 1} to{" "}
+            {Math.min(
+              (paginationModel.page + 1) * paginationModel.pageSize,
+              filteredData.length
+            )}{" "}
+            of {filteredData.length} entries
+          </Box>
+
+          <StyledPaper>
+            <DataGrid
+              rows={rowsWithId}
+              columns={dataGridColumns}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              pageSizeOptions={[5, 10, 25, 50]}
+              disableRowSelectionOnClick
+              sx={{ border: 0 }}
+              autoHeight
+              disableColumnMenu
+            />
+          </StyledPaper>
+
+          {filteredData.length === 0 && (
+            <Box sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
+              No data found matching your criteria.
+            </Box>
+          )}
+
+          <Popover
+            open={Boolean(filterAnchorEl)}
+            anchorEl={filterAnchorEl}
+            onClose={handleFilterClose}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+            onEnter={handleFilterPopoverEnter}
+          >
+            <Card sx={{ minWidth: 280, maxWidth: 400 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Filter by{" "}
+                  {columns.find((c) => c.field === filterColumn)?.headerName}
+                </Typography>
+                <TextField
+                  inputRef={filterInputRef}
+                  fullWidth
+                  size="small"
+                  placeholder={`Enter ${
+                    columns.find((c) => c.field === filterColumn)?.headerName
+                  }...`}
+                  value={columnFilters[filterColumn] || ""}
+                  onChange={(e) =>
+                    handleFilterChange(filterColumn, e.target.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleFilterClose();
+                    }
+                  }}
+                  variant="outlined"
+                  margin="normal"
+                />
+              </CardContent>
+              <CardActions sx={{ justifyContent: "flex-end" }}>
+                <Button size="small" onClick={clearFilter}>
+                  Clear
+                </Button>
+                <Button size="small" onClick={handleFilterClose}>
+                  Close
+                </Button>
+              </CardActions>
+            </Card>
+          </Popover>
+        </div>
+      )}
     </div>
   );
 }

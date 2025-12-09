@@ -1,10 +1,12 @@
 import React from "react";
 import ReactApexChart from "react-apexcharts";
 import styles from "./FundingStageChart.module.css";
+import MetricCardShimmer from "./MetricCardShimmer";
 
 const FundingStageChart = ({ byStage }) => {
   // if (!byStage || byStage.length === 0) return <p>No data available</p>;
-  if (!byStage || byStage.length === 0) return <p></p>;
+  // if (!byStage || byStage.length === 0) return <p></p>;
+  const isLoading = !byStage || Object.keys(byStage).length === 0;
 
   // ✅ Define desired order
   const stageOrder = [
@@ -62,28 +64,41 @@ const FundingStageChart = ({ byStage }) => {
 
   return (
     <div className={styles.card}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>Companies by Stage</h3>
-      </div>
-      <div className={styles.content}>
-        <div className={styles.statsGrid}>
-          {sortedStages.map((stage) => (
-            <div key={stage.startupstagesname} className={styles.statItem}>
-              <div className={styles.statValue}>{stage.incubatees_count}</div>
-              <div className={styles.statLabel}>{stage.startupstagesname}</div>
+      {isLoading ? (
+        // If stats are not available, show the shimmer placeholders
+        <>
+          <MetricCardShimmer />
+        </>
+      ) : (
+        <div>
+          <div className={styles.header}>
+            <h3 className={styles.title}>Companies by Stage</h3>
+          </div>
+          <div className={styles.content}>
+            <div className={styles.statsGrid}>
+              {sortedStages.map((stage) => (
+                <div key={stage.startupstagesname} className={styles.statItem}>
+                  <div className={styles.statValue}>
+                    {stage.incubatees_count}
+                  </div>
+                  <div className={styles.statLabel}>
+                    {stage.startupstagesname}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+            <div className={styles.chartWrapper}>
+              <ReactApexChart
+                options={options}
+                series={series}
+                type="bar"
+                height="100%"
+                width="100%"
+              />
+            </div>
+          </div>
         </div>
-        <div className={styles.chartWrapper}>
-          <ReactApexChart
-            options={options}
-            series={series}
-            type="bar"
-            height="100%"
-            width="100%"
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 };

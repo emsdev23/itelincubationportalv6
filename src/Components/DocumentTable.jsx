@@ -599,7 +599,28 @@ export default function DocumentTable() {
     }));
   };
 
-  if (loading) return <p>Loading documents...</p>;
+  // Shimmer loading component that mimics the table structure
+  const TableShimmer = () => {
+    return (
+      <div className={styles.tableShimmerContainer}>
+        <div className={styles.tableShimmerHeader}>
+          {[...Array(10)].map((_, index) => (
+            <div key={index} className={styles.shimmerHeaderItem}></div>
+          ))}
+        </div>
+        {[...Array(8)].map((_, rowIndex) => (
+          <div key={rowIndex} className={styles.tableShimmerRow}>
+            {[...Array(10)].map((_, colIndex) => (
+              <div key={colIndex} className={styles.shimmerCell}></div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // With:
+  // if (loading) return <TableShimmer />;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -689,6 +710,8 @@ export default function DocumentTable() {
             sheetName: "Documents",
           }}
           enableColumnFilters={true}
+          loading={loading} // <-- PASS THE LOADING STATE HERE
+          shimmerRowCount={8} // <-- OPTIONAL: Customize shimmer rows
         />
 
         {/* Additional Info Display */}

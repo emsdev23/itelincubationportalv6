@@ -1,8 +1,15 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useContext,
+} from "react";
 import Swal from "sweetalert2";
 import { IPAdress } from "../Datafetching/IPAdrees";
 import { Download } from "lucide-react";
 import { FaTimes } from "react-icons/fa";
+import { DataContext } from "../Datafetching/DataProvider";
 
 // Material UI imports
 import {
@@ -78,6 +85,19 @@ const formatDate = (dateStr) => {
 };
 
 export default function DocCatTable() {
+  const { menuItemsFromAPI } = useContext(DataContext);
+
+  // Find the current path in menu items to check write access
+  const currentPath = "/Incubation/Dashboard/AddDocuments"; // Make sure this path matches your API
+  const menuItem = menuItemsFromAPI.find(
+    (item) => item.guiappspath === currentPath
+  );
+
+  console.log(menuItemsFromAPI);
+  // The user has write access if the item exists and appswriteaccess is 1
+  const hasWriteAccess = menuItem ? menuItem.appswriteaccess === 1 : false;
+  console.log("User Write Access:", hasWriteAccess);
+
   // --- 1. STATE DECLARATIONS ---
   const userId = sessionStorage.getItem("userid");
   const token = sessionStorage.getItem("token");

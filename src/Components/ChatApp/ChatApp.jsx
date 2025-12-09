@@ -347,23 +347,9 @@ const ChatApp = () => {
     <div className="chat-app-page">
       <header className={styles.header}>
         <div className={styles.container}>
-          <div className={styles.logoSection}>
-            <img src={ITELLogo} className={styles.logoIcon} alt="ITEL Logo" />
-            <div>
-              <h1 className={styles.title}>ITEL Incubation Portal</h1>
-              <p className={styles.subtitle}>Startup Management Dashboard</p>
-            </div>
-          </div>
           <div className={styles.actions}>
-            <button
-              className={styles.btnPrimary}
-              onClick={() => setShowNewChatModal(true)}
-            >
-              <MessageSquare className={styles.icon} />
-              New Chat
-            </button>
             {/* History button for all users */}
-            {Number(currentUser.roleid) === 1 && (
+            {/* {Number(currentUser.roleid) === 1 && (
               <button
                 className={styles.btnPrimary}
                 onClick={handleHistory}
@@ -372,17 +358,12 @@ const ChatApp = () => {
                 <History className={styles.icon} />
                 Chat History
               </button>
-            )}
-
-            <button className={styles.btnPrimary} onClick={handleBackToPortal}>
-              <MoveLeft className={styles.icon} />
-              Back To Portal
-            </button>
+            )} */}
           </div>
         </div>
       </header>
 
-      <main className="chat-app-main">
+      <main className="chat-app-main" style={{ paddingTop: "100px" }}>
         <div className="chat-container">
           <ChatList
             chatLists={chatLists}

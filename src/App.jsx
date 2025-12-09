@@ -1,5 +1,11 @@
-import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { useEffect, useState, createContext, useContext } from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import "./App.css";
 import Navbar from "./Components/Navbar";
 import DocumentTable from "./Components/DocumentTable";
@@ -16,19 +22,54 @@ import ChatApp from "./Components/ChatApp/ChatApp";
 import IncubationManagementPage from "./Components/Incubation/IncubationManagementPage";
 import RolesManagement from "./Components/RoleManagement/RolesManagement";
 import ApplicationManagement from "./Components/ApplicationManagement/ApplicationManagement";
+import MainDashboard from "./Components/MainDashboard";
 
-function App() {
+// Create a context for authentication state
+export const AuthContext = createContext();
+
+function AppContent() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if user is logged in by checking for token in sessionStorage
+    const token = sessionStorage.getItem("token");
+    setIsAuthenticated(!!token);
+
+    // If user is on login page but already authenticated, redirect to dashboard
+    if (!!token && location.pathname === "/") {
+      navigate("/Incubation/Dashboard", { replace: true });
+    }
+
+    // Initialize body class for sidebar state
+    if (location.pathname === "/") {
+      // On login page, remove all sidebar-related classes
+      document.body.classList.remove("sidebar-expanded", "sidebar-collapsed");
+    } else if (!!token) {
+      // On authenticated pages, start with collapsed sidebar
+      document.body.classList.add("sidebar-collapsed");
+      document.body.classList.remove("sidebar-expanded");
+    }
+  }, [location.pathname, navigate]);
+
   return (
-    <BrowserRouter>
-      <DataProvider>
-        <InactivityHandler>
+    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated }}>
+      <div className="app-container">
+        {/* Only render Navbar if authenticated and not on login page */}
+        {isAuthenticated && location.pathname !== "/" && <Navbar />}
+        <div
+          className={`content-container ${
+            isAuthenticated && location.pathname !== "/" ? "with-sidebar" : ""
+          }`}
+        >
           <Routes>
             <Route path="/" element={<LoginForm />} />
             <Route
               path="/Incubation/Dashboard"
               element={
                 <ProtectedRoute allowedRoles={[0, 1, 3, 7]}>
-                  <Navbar />
+                  <MainDashboard />
                 </ProtectedRoute>
               }
             />
@@ -106,6 +147,18 @@ function App() {
               }
             />
           </Routes>
+        </div>
+      </div>
+    </AuthContext.Provider>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <DataProvider>
+        <InactivityHandler>
+          <AppContent />
         </InactivityHandler>
       </DataProvider>
     </BrowserRouter>

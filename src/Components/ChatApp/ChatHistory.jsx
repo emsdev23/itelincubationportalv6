@@ -500,27 +500,6 @@ const ChatHistory = ({ currentUser: propCurrentUser }) => {
       className="chat-history-page"
       sx={{ height: "100vh", display: "flex", flexDirection: "column" }}
     >
-      <header className={styles.header}>
-        <div className={styles.container}>
-          <div className={styles.logoSection}>
-            <img src={ITELLogo} className={styles.logoIcon} alt="ITEL Logo" />
-            <div>
-              <h1 className={styles.title}>ITEL Incubation Portal</h1>
-              <p className={styles.subtitle}>Chat History</p>
-            </div>
-          </div>
-          <div className={styles.actions}>
-            <Button
-              variant="contained"
-              startIcon={<ArrowLeft />}
-              onClick={handleBackToPortal}
-            >
-              Back To Chats
-            </Button>
-          </div>
-        </div>
-      </header>
-
       <main className="chat-history-main" sx={{ flexGrow: 1, p: 3 }}>
         <Box className="chat-history-container" sx={{ p: 2 }}>
           {/* Use the ReusableDataGrid component */}
