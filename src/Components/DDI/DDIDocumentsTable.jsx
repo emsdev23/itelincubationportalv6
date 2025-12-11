@@ -274,7 +274,7 @@ export default function DDIDocumentsTable({ userRecID = "ALL" }) {
         ]
       : []),
     // Only include the Actions column if roleId is 7 or 4
-    ...(roleid === 7 || roleid === 4
+    ...(Number(roleid === 7) || roleid === 4
       ? [
           {
             field: "actions",
