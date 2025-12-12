@@ -111,6 +111,78 @@ export default function CollectedDocumentsTable() {
   const [editRolesLoading, setEditRolesLoading] = useState(false);
   const [editUsersLoading, setEditUsersLoading] = useState(false);
 
+  // NEW: State for all roles and users lookup
+  const [allRoles, setAllRoles] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [rolesMap, setRolesMap] = useState({});
+  const [usersMap, setUsersMap] = useState({});
+
+  // NEW: Fetch all roles for lookup
+  const fetchAllRoles = () => {
+    fetch(`${API_BASE_URL}/itelinc/resources/generic/getroledetails`, {
+      method: "POST",
+      headers: { 
+        Authorization: `Bearer ${token}`, 
+        "Content-Type": "application/json", 
+      },
+      body: JSON.stringify({ 
+        userId: userId || "1",
+        userIncId: "ALL"
+      }),
+    })
+    .then(res => res.ok ? res.json() : Promise.reject(`HTTP error! Status: ${res.status}`))
+    .then(data => {
+      if (data.statusCode === 200) {
+        setAllRoles(data.data);
+        
+        // Create a map for quick lookup
+        const roleMap = {};
+        data.data.forEach(role => {
+          roleMap[role.rolesrecid] = role.rolesname;
+        });
+        setRolesMap(roleMap);
+      } else {
+        throw new Error(data.message || "Failed to fetch roles");
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching all roles:", err);
+    });
+  };
+
+  // NEW: Fetch all users for lookup
+  const fetchAllUsers = () => {
+    fetch(`${API_BASE_URL}/itelinc/resources/generic/getusers`, {
+      method: "POST",
+      headers: { 
+        Authorization: `Bearer ${token}`, 
+        "Content-Type": "application/json", 
+      },
+      body: JSON.stringify({ 
+        userId: userId || "1",
+        userIncId: "1"
+      }),
+    })
+    .then(res => res.ok ? res.json() : Promise.reject(`HTTP error! Status: ${res.status}`))
+    .then(data => {
+      if (data.statusCode === 200) {
+        setAllUsers(data.data);
+        
+        // Create a map for quick lookup
+        const userMap = {};
+        data.data.forEach(user => {
+          userMap[user.usersrecid] = user.usersname;
+        });
+        setUsersMap(userMap);
+      } else {
+        throw new Error(data.message || "Failed to fetch users");
+      }
+    })
+    .catch(err => {
+      console.error("Error fetching all users:", err);
+    });
+  };
+
   // Fetch documents
   const fetchDocuments = () => {
     setAllDocumentsLoading(true);
@@ -153,12 +225,32 @@ export default function CollectedDocumentsTable() {
         // Set state for ALL documents table
         setAllDocuments(collectedDocs);
 
-        // Merge data for the WITH ACCESS table
-        // FIX: Use collecteddocdocumentsrecid to match with docaccessdocid
-        const documentsWithAccessMerged = collectedDocs.map(doc => {
-          const accessDetail = accessDetails.find(access => access.docaccessdocid === doc.collecteddocdocumentsrecid.toString());
-          return { ...doc, accessDetails: accessDetail || null };
-        }).filter(doc => doc.accessDetails !== null); // Keep only those with access
+        // For the WITH ACCESS table, use access details directly since they already contain document info
+        // But also add any missing fields from collected docs if needed
+        const documentsWithAccessMerged = accessDetails.map(access => {
+          // Find the corresponding collected document
+          const collectedDoc = collectedDocs.find(doc => 
+            doc.collecteddocrecid?.toString() === access.docaccessdocid ||
+            doc.collecteddocdocumentsrecid?.toString() === access.docaccessdocid
+          );
+          
+          // Get role name and user name from the maps
+          const roleName = rolesMap[access.usersrolesrecid] || "Unknown Role";
+          const userName = usersMap[access.docaccessuserrecid] || "Unknown User";
+          
+          // Merge the data, with access details taking precedence
+          return {
+            ...collectedDoc,
+            ...access,
+            // Add role name and user name
+            roleName: roleName,
+            userName: userName,
+            // Ensure we have the document ID for operations
+            collecteddocrecid: collectedDoc?.collecteddocrecid || access.docaccessdocid,
+            // Keep access details nested for easier access
+            accessDetails: access
+          };
+        });
 
         setDocumentsWithAccess(documentsWithAccessMerged);
       })
@@ -193,7 +285,7 @@ export default function CollectedDocumentsTable() {
       if (data.statusCode === 200) {
         // Filter roles to only include IDs 1, 2, 4, 7
         const filteredRoles = data.data.filter(role => 
-          [1, 2, 4, 7].includes(role.rolesrecid)
+          [1, 2, 7].includes(role.rolesrecid)
         );
         setRoles(filteredRoles);
       } else {
@@ -391,7 +483,7 @@ export default function CollectedDocumentsTable() {
           roleid: currentRole,
           userrecid: currentUser,
           docaccessdocsubcatid: currentDocument.collecteddocsubcatrecid.toString(),
-          docaccessdocid: currentDocument.collecteddocdocumentsrecid.toString(),
+          docaccessdocid: currentDocument.collecteddocrecid.toString(),
           fromdate: currentFromDate.toISOString().split('T')[0],
           todate: currentToDate.toISOString().split('T')[0]
         };
@@ -470,17 +562,17 @@ export default function CollectedDocumentsTable() {
         
         // Build the URL with query parameters
         const params = new URLSearchParams({
-          docaccessrecid: currentAccessRecord.accessDetails.docaccessrecid,
+          docaccessrecid: currentAccessRecord.docaccessrecid,
           docaccessincubateesrecid: incubateeId || "35",
           docaccessrolerecid: currentRole,
-          docaccesscatrecid: currentAccessRecord.collecteddoccatrecid,
+          docaccesscatrecid: currentAccessRecord.docaccesscatrecid,
           docaccessexpirydate: currentExpiryDate.toISOString().split('T')[0],
           docaccessadminstate: "1", // CHANGE: Always send adminstate as 1
           docaccessuserrecid: currentUser,
-          docaccessdocsubcatid: currentAccessRecord.collecteddocsubcatrecid,
+          docaccessdocsubcatid: currentAccessRecord.collecteddocsubcatrecid || currentAccessRecord.docaccessdocsubcatid,
           docaccessfromdate: currentFromDate.toISOString().split('T')[0],
           docaccesstodate: currentToDate.toISOString().split('T')[0],
-          docaccessdocid: currentAccessRecord.collecteddocdocumentsrecid
+          docaccessdocid: currentAccessRecord.docaccessdocid
         });
         
         fetch(`${API_BASE_URL}/itelinc/updateDocAccess?${params.toString()}`, {
@@ -536,18 +628,18 @@ export default function CollectedDocumentsTable() {
     setEditAccessModalOpen(true);
     
     // Set initial values from the access record
-    setEditSelectedRole(document.accessDetails.docaccessrolerecid?.toString() || "");
-    setEditSelectedUser(document.accessDetails.docaccessuserrecid?.toString() || "");
+    setEditSelectedRole(document.usersrolesrecid?.toString() || "");
+    setEditSelectedUser(document.docaccessuserrecid?.toString() || "");
     
     // Parse dates if they exist
-    if (document.accessDetails.docaccessfromdate) {
-      setEditFromDate(new Date(document.accessDetails.docaccessfromdate));
+    if (document.docaccessfromdate) {
+      setEditFromDate(new Date(document.docaccessfromdate));
     }
-    if (document.accessDetails.docaccesstodate) {
-      setEditToDate(new Date(document.accessDetails.docaccesstodate));
+    if (document.docaccesstodate) {
+      setEditToDate(new Date(document.docaccesstodate));
     }
-    if (document.accessDetails.docaccessexpirydate) {
-      setEditExpiryDate(new Date(document.accessDetails.docaccessexpirydate));
+    if (document.docaccessexpirydate) {
+      setEditExpiryDate(new Date(document.docaccessexpirydate));
     }
     
     // Fetch roles if not already loaded
@@ -556,8 +648,8 @@ export default function CollectedDocumentsTable() {
     }
     
     // Fetch users for the current role
-    if (document.accessDetails.docaccessrolerecid) {
-      fetchEditUsers(document.accessDetails.docaccessrolerecid);
+    if (document.usersrolesrecid) {
+      fetchEditUsers(document.usersrolesrecid);
     }
   };
 
@@ -583,6 +675,11 @@ export default function CollectedDocumentsTable() {
   };
 
   useEffect(() => {
+    // Fetch all roles and users for lookup
+    fetchAllRoles();
+    fetchAllUsers();
+    
+    // Then fetch documents
     fetchDocuments();
   }, []);
 
@@ -599,7 +696,7 @@ export default function CollectedDocumentsTable() {
 
   // UPDATED: Handle delete action with API call
   const handleDelete = (row) => {
-    const accessRecId = row.accessDetails?.docaccessrecid;
+    const accessRecId = row.docaccessrecid;
 
     if (!accessRecId) {
       Swal.fire("Error", "Cannot find access record ID to delete.", "error");
@@ -638,7 +735,7 @@ export default function CollectedDocumentsTable() {
           if (data.statusCode === 200) {
             Swal.fire('Deleted!', `Access for "${row.documentname}" has been removed.`, 'success');
             // Update local state to remove the deleted item
-            setDocumentsWithAccess(prev => prev.filter(doc => doc.collecteddocrecid !== row.collecteddocrecid));
+            setDocumentsWithAccess(prev => prev.filter(doc => doc.docaccessrecid !== row.docaccessrecid));
           } else {
             throw new Error(data.message || "Failed to delete access");
           }
@@ -662,12 +759,13 @@ export default function CollectedDocumentsTable() {
       html: `<div style="text-align:left;">
         <p><strong>Document Name:</strong> ${row.documentname}</p>
         <p><strong>Category:</strong> ${row.doccatname}</p>
-        <p><strong>Sub-Category:</strong> ${row.docsubcatname}</p>
-        <p><strong>Periodicity:</strong> ${row.docperiodicityname}</p>
+        <p><strong>Sub-Category:</strong> ${row.docsubcatname || "-"}</p>
+        <p><strong>Periodicity:</strong> ${row.docperiodicityname || "-"}</p>
         <p><strong>Upload Date:</strong> ${row.collecteddocuploaddate?.replace("T", " ") || "-"}</p>
-        ${row.accessDetails ? `
-          <p><strong>Access User:</strong> ${row.accessDetails.usersname}</p>
-          <p><strong>Access Expiry:</strong> ${row.accessDetails.docaccessexpirydate || "-"}</p>
+        ${row.docaccessusername ? `
+          <p><strong>Access User:</strong> ${row.docaccessusername}</p>
+          <p><strong>Access Role:</strong> ${row.roleName || "-"}</p>
+          <p><strong>Access Expiry:</strong> ${row.docaccessexpirydate || "-"}</p>
         ` : ''}
       </div>`, 
       icon: 'info',
@@ -688,7 +786,7 @@ export default function CollectedDocumentsTable() {
     {
       field: "sno",
       headerName: "S.No",
-      width: 80,
+      width: 100,
       sortable: true,
       renderCell: (params) => {
         // Ensure we have valid params and row
@@ -797,7 +895,7 @@ export default function CollectedDocumentsTable() {
     {
       field: "sno",
       headerName: "S.No",
-      width: 80,
+      width: 100,
       sortable: true,
       renderCell: (params) => {
         // Ensure we have valid params and row
@@ -824,7 +922,7 @@ export default function CollectedDocumentsTable() {
     {
       field: "documentname",
       headerName: "Document Name",
-      width: 200,
+      width: 250,
       sortable: true,
       renderCell: (params) => (
         <Typography variant="body2" sx={{ fontWeight: 500, color: "primary.main" }}>
@@ -835,7 +933,7 @@ export default function CollectedDocumentsTable() {
     {
       field: "doccatname",
       headerName: "Category",
-      width: 120,
+      width: 150,
       sortable: true,
       renderCell: (params) => (
         <StyledChip 
@@ -846,46 +944,46 @@ export default function CollectedDocumentsTable() {
       ),
     },
     {
-      field: "accessDetails.usersname",
-      headerName: "Access User",
-      width: 120,
+      field: "userName",
+      headerName: "User",
+      width: 180,
       sortable: true,
       renderCell: (params) => (
         <Typography variant="body2">
-          {params.row.accessDetails?.docaccessusername || "-"}
+          {params.row.userName || params.row.docaccessusername || "-"}
         </Typography>
       ),
     },
     {
-      field: "accessDetails.docaccessexpirydate",
-      headerName: "Access Expiry",
-      width: 120,
+      field: "docaccesstodate",
+      headerName: "Access Expirty",
+      width: 180,
       sortable: true,
       renderCell: (params) => (
-        params.row.accessDetails?.docaccesstodate ? 
-          new Date(params.row.accessDetails.docaccesstodate).toLocaleDateString() : 
+        params.row.docaccesstodate ? 
+          new Date(params.row.docaccesstodate).toLocaleDateString() : 
           "-"
       ),
     },
     {
-      field: "accessDetails.createdby",
+      field: "docaccesscreatedname",
       headerName: "Created By",
-      width: 120,
+      width: 180,
       sortable: true,
       renderCell: (params) => (
         <Typography variant="body2">
-          {params.row.accessDetails?.docaccesscreatedname || "-"}
+          {params.row.docaccesscreatedname || "-"}
         </Typography>
       ),
     },
     {
-      field: "accessDetails.createdtime",
+      field: "docaccesscreatedtime",
       headerName: "Created Time",
-      width: 150,
+      width: 180,
       sortable: true,
       renderCell: (params) => (
-        params.row.accessDetails?.docaccesscreatedtime ? 
-          new Date(params.row.accessDetails.docaccesscreatedtime).toLocaleString() : 
+        params.row.docaccesscreatedtime ? 
+          new Date(params.row.docaccesscreatedtime).toLocaleString() : 
           "-"
       ),
     },
@@ -908,9 +1006,9 @@ export default function CollectedDocumentsTable() {
             <IconButton
               color="error"
               onClick={() => handleDelete(params.row)} // Pass the row directly
-              disabled={isDeleting === params.row.accessDetails?.docaccessrecid}
+              disabled={isDeleting === params.row.docaccessrecid}
             >
-              {isDeleting === params.row.accessDetails?.docaccessrecid ? (
+              {isDeleting === params.row.docaccessrecid ? (
                 <CircularProgress size={20} />
               ) : (
                 <Trash2 size={18} />
@@ -938,9 +1036,11 @@ export default function CollectedDocumentsTable() {
     return data.map((item) => ({
       "Document Name": item.documentname || "",
       "Category": item.doccatname || "",
-      "Access User": item.accessDetails?.usersname || "",
-      "Access Expiry": item.accessDetails?.docaccessexpirydate || "",
-      "Upload Date": item.collecteddocuploaddate?.replace("T", " ") || "",
+      "Role": item.roleName || "",
+      "User": item.userName || item.docaccessusername || "",
+      "Access To": item.docaccesstodate || "",
+      "Created By": item.docaccesscreatedname || "",
+      "Created Time": item.docaccesscreatedtime || "",
     }));
   };
 
@@ -963,7 +1063,7 @@ export default function CollectedDocumentsTable() {
 
   const rowsWithIdForAccess = documentsWithAccess.map(item => ({
     ...item, 
-    id: item.collecteddocrecid || Math.random().toString(36).substr(2, 9) 
+    id: item.docaccessrecid || Math.random().toString(36).substr(2, 9) 
   }));
 
   return (
@@ -1072,8 +1172,8 @@ export default function CollectedDocumentsTable() {
           enableExport={true}
           enableColumnFilters={true}
           searchPlaceholder="Search by name, category, user..."
-          searchFields={["documentname", "doccatname", "accessDetails.usersname"]}
-          uniqueIdField="collecteddocrecid"
+          searchFields={["documentname", "doccatname", "userName", "docaccessusername"]}
+          uniqueIdField="docaccessrecid"
           onExportData={onExportDocumentsWithAccessData}
           exportConfig={documentsWithAccessExportConfig}
           className="documents-with-access-table"
@@ -1200,7 +1300,7 @@ export default function CollectedDocumentsTable() {
                 <strong>Category:</strong> {selectedAccessRecord.doccatname}
               </Typography>
               <Typography variant="body2">
-                <strong>Sub-Category:</strong> {selectedAccessRecord.docsubcatname}
+                <strong>Sub-Category:</strong> {selectedAccessRecord.docsubcatname || "-"}
               </Typography>
             </Box>
           )}
