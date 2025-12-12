@@ -338,19 +338,7 @@ export default function DocumentTable() {
       width: 200,
       sortable: true,
       filterable: true,
-    },
-    {
-      field: "periodidentifier",
-      headerName: "Period Identifier",
-      width: 180,
-      sortable: true,
-      filterable: true,
-      renderCell: (params) => {
-        // If the value is null, undefined, or an empty string, return a hyphen
-        // Otherwise, return the actual value
-        return params.value || "-";
-      },
-    },
+    }
   ];
 
   // Conditionally add Stage column based on role
@@ -387,6 +375,20 @@ export default function DocumentTable() {
 
   // Add remaining columns
   columns.push(
+    {
+      field: "periodicity",
+      headerName: "Periodicity",
+      width: 150,
+      sortable: true,
+      filterable: true,
+      type: "date",
+      renderCell: (params) => {
+        if (!params?.row) return "Not submitted";
+        return params.row.periodicity
+          ? formatDate(params.row.periodicity)
+          : "Not submitted";
+      },
+    },
     {
       field: "submission_date",
       headerName: "Submission Date",
@@ -551,60 +553,65 @@ export default function DocumentTable() {
 
   // Conditionally add Document column for roleid 7
   if (Number(roleid) === 7) {
-    columns.push({
-      field: "filepath",
-      headerName: "Document",
-      width: 120,
-      sortable: false,
-      filterable: false,
-      renderCell: (params) => {
-        if (!params?.row) return null;
+  columns.push({
+    field: "filepath",
+    headerName: "Document",
+    width: 120,
+    sortable: false,
+    filterable: false,
+    renderCell: (params) => {
+      // Ensure the row data exists
+      if (!params?.row) return null;
 
-        return params.row.filepath ? (
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() =>
-              handleViewDocument(params.row.filepath, params.row.documentname)
-            }
-            sx={{
-              padding: "4px 12px",
-              fontSize: "0.75rem",
-              fontWeight: 500,
-              borderRadius: 1,
-              textTransform: "none",
-              backgroundColor: "#1976d2",
-              color: "white",
-              "&:hover": {
-                backgroundColor: "#1565c0",
-              },
-            }}
-          >
-            View Doc
-          </Button>
-        ) : (
-          <Button
-            variant="contained"
-            disabled
-            size="small"
-            sx={{
-              padding: "4px 12px",
-              fontSize: "0.75rem",
-              fontWeight: 500,
-              borderRadius: 1,
-              textTransform: "none",
-              backgroundColor: "#6b7280",
-              color: "white",
-              opacity: 0.7,
-              cursor: "not-allowed",
-            }}
-          >
-            No File
-          </Button>
-        );
-      },
-    });
-  }
+      // Get the view_status from the row data
+      const { view_status, filepath, documentname } = params.row;
+
+      // Check if view_status is exactly 1 to enable the button
+      const isViewEnabled = view_status === 1;
+
+      return isViewEnabled ? (
+        <Button
+          variant="contained"
+          size="small"
+          onClick={() => handleViewDocument(filepath, documentname)}
+          sx={{
+            padding: "4px 12px",
+            fontSize: "0.75rem",
+            fontWeight: 500,
+            borderRadius: 1,
+            textTransform: "none",
+            backgroundColor: "#1976d2",
+            color: "white",
+            "&:hover": {
+              backgroundColor: "#1565c0",
+            },
+          }}
+        >
+          View Doc
+        </Button>
+      ) : (
+        <Button
+          variant="contained"
+          disabled
+          size="small"
+          sx={{
+            padding: "4px 12px",
+            fontSize: "0.75rem",
+            fontWeight: 500,
+            borderRadius: 1,
+            textTransform: "none",
+            backgroundColor: "#6b7280",
+            color: "white",
+            opacity: 0.7,
+            cursor: "not-allowed",
+          }}
+        >
+          No File
+        </Button>
+      );
+    },
+  });
+}
 
   // Define dropdown filters - use mapped values
   const dropdownFilters = [
