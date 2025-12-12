@@ -311,7 +311,7 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
 
   const fetchCategories = useCallback(() => {
     // Using the exact URL provided
-    const url = `http://121.242.232.213:8089/itelinc/getDoccatAll?incuserid=${encodeURIComponent(
+    const url = `${IP}/itelinc/getDoccatAll?incuserid=${encodeURIComponent(
       incUserid || "1"
     )}`;
     fetch(url, {
@@ -331,7 +331,7 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
 
   const fetchSubCategories = useCallback(() => {
     // Using the exact URL provided
-    const url = `http://121.242.232.213:8089/itelinc/getDocsubcatAll?incuserid=${encodeURIComponent(
+    const url = `${IP}itelinc/getDocsubcatAll?incuserid=${encodeURIComponent(
       incUserid || "1"
     )}`;
     fetch(url, {
@@ -1211,7 +1211,7 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
   const updateDocument = useCallback(
     async (documentData) => {
       try {
-        const url = `http://121.242.232.213:8089/itelinc/api/documents/updateDocumentDetails`;
+        const url = `${IP}/itelinc/api/documents/updateDocumentDetails`;
 
         const response = await fetch(url, {
           method: "POST",
