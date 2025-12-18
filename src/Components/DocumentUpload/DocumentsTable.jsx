@@ -2495,6 +2495,7 @@ const DocumentsTable = forwardRef(({ title = "📄 Documents" }, ref) => {
                     <MenuItem value="2">Monthly</MenuItem>
                     <MenuItem value="3">Quarterly</MenuItem>
                     <MenuItem value="4">Yearly</MenuItem>
+                    <MenuItem value="7">Half yearly</MenuItem>
                     <MenuItem value="6">Ad Hoc</MenuItem>
                   </Select>
                   {fieldErrors.documentperiodicityrecid && (
