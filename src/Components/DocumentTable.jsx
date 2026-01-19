@@ -341,6 +341,13 @@ export default function DocumentTable() {
       filterable: true,
     },
     {
+      field: "periodicity",
+      headerName: "Periodicity",
+      width: 150,
+      sortable: true,
+      type: "text",
+    },
+    {
       field: "periodidentifier",
       headerName: "Period Identifier",
       width: 180,
